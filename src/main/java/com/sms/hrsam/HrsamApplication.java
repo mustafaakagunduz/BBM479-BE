@@ -9,5 +9,5 @@ public class HrsamApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(HrsamApplication.class, args);
 	}
-
+	//çay molası
 }
