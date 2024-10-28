@@ -3,6 +3,7 @@ import com.sms.hrsam.dto.SurveyCreateDTO; // SurveyCreateDTO için
 import com.sms.hrsam.entity.*; // Survey, User, Question, Option, Skill için
 import com.sms.hrsam.exception.ResourceNotFoundException; // ResourceNotFoundException için
 import com.sms.hrsam.repository.*;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,13 +17,13 @@ import java.util.stream.Collectors;
 @Transactional
 @Slf4j
 public class SurveyService {
+
     private final SurveyRepository surveyRepository;
     private final QuestionRepository questionRepository;
     private final SkillRepository skillRepository;
     private final OptionRepository optionRepository;
     private final UserRepository userRepository;
 
-    @Autowired
     public SurveyService(SurveyRepository surveyRepository,
                          QuestionRepository questionRepository,
                          SkillRepository skillRepository,
@@ -34,6 +35,7 @@ public class SurveyService {
         this.optionRepository = optionRepository;
         this.userRepository = userRepository;
     }
+
     public List<Survey> getAllSurveys() {
         return surveyRepository.findAll(); // Fetch all surveys from the repository
     }

@@ -14,18 +14,17 @@ import java.util.List;
 // Controller class
 @RestController
 @RequestMapping("/api/surveys")
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @Slf4j
 public class SurveyController {
     private final SurveyService surveyService;
 
-    @Autowired
+
     public SurveyController(SurveyService surveyService) {
         this.surveyService = surveyService;
     }
 
     // Endpoint to create a new survey
-    @PostMapping
+    @PostMapping("/createSurvey")
     public ResponseEntity<Survey> createSurvey(@RequestBody SurveyCreateDTO surveyDTO,
                                                @RequestParam Long userId) {
         log.info("Creating new survey for user: {}", userId);
@@ -34,7 +33,8 @@ public class SurveyController {
     }
 
     // Endpoint to get all surveys
-    @GetMapping
+
+    @GetMapping("/getAllSurveys")
     public ResponseEntity<List<Survey>> getAllSurveys() {
         log.info("Fetching all surveys");
         List<Survey> surveys = surveyService.getAllSurveys();
