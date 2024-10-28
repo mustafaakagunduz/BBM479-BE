@@ -11,7 +11,7 @@ import jakarta.persistence.*;
 
 // Entity classes
 @Entity
-@Table(name = "users")
+@Table(name = "\"user\"")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
