@@ -3,20 +3,16 @@ package com.sms.hrsam.controller;
 import com.sms.hrsam.dto.SurveyCreateDTO;
 import com.sms.hrsam.entity.Survey;
 import com.sms.hrsam.service.SurveyService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// Controller class
 @RestController
 @RequestMapping("/api/surveys")
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
-@Slf4j
 public class SurveyController {
+
     private final SurveyService surveyService;
 
     @Autowired
@@ -24,20 +20,31 @@ public class SurveyController {
         this.surveyService = surveyService;
     }
 
-    // Endpoint to create a new survey
-    @PostMapping
-    public ResponseEntity<Survey> createSurvey(@RequestBody SurveyCreateDTO surveyDTO,
-                                               @RequestParam Long userId) {
-        log.info("Creating new survey for user: {}", userId);
-        Survey survey = surveyService.createSurvey(surveyDTO, userId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(survey);
+    @GetMapping
+    public List<Survey> getAllSurveys() {
+        return surveyService.getAllSurveys();
     }
 
-    // Endpoint to get all surveys
-    @GetMapping
-    public ResponseEntity<List<Survey>> getAllSurveys() {
-        log.info("Fetching all surveys");
-        List<Survey> surveys = surveyService.getAllSurveys();
-        return ResponseEntity.ok(surveys);
+    @PostMapping
+    public Survey createSurvey(@RequestBody SurveyCreateDTO surveyDTO, @RequestParam Long userId) {
+        return surveyService.createSurvey(surveyDTO, userId);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Survey> getSurveyById(@PathVariable Long id) {
+        Survey survey = surveyService.getSurvey(id);
+        return ResponseEntity.ok(survey);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Survey> updateSurvey(@PathVariable Long id, @RequestBody SurveyCreateDTO surveyDTO) {
+        Survey updatedSurvey = surveyService.updateSurvey(id, surveyDTO);
+        return ResponseEntity.ok(updatedSurvey);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSurvey(@PathVariable Long id) {
+        surveyService.deleteSurvey(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -1,0 +1,14 @@
+for deletin all table write this script:
+DROP TABLE IF EXISTS
+    role,
+    app_user,
+    skill,
+    profession,
+    required_level,
+    survey,
+    question,
+    option,
+    response,
+    entered_survey,
+    profession_skill
+CASCADE;
