@@ -1,21 +1,28 @@
 package com.sms.hrsam.entity;
 
-import lombok.Data;
 import jakarta.persistence.*;
-
-import java.util.ArrayList;
-import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "professions")
 @Data
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Table(name = "profession")
 public class Profession {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @ElementCollection
-    private List<Long> professionSkills = new ArrayList<>();
+    @ManyToOne
+    @JoinColumn(name = "industry_id")
+    private Industry industry;
 }

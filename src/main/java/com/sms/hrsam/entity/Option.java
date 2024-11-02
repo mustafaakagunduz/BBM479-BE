@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 @Entity
-@Table(name = "options")
+@Table(name = "option")
 @Data
 public class Option {
     @Id

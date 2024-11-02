@@ -4,14 +4,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.List;
 
 @Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Table(name = "skill")
-public class Skill {
+@Table(name = "industry")
+public class Industry {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,7 +21,9 @@ public class Skill {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @ManyToOne
-    @JoinColumn(name = "industry_id")
-    private Industry industry;
+    @OneToMany(mappedBy = "industry", cascade = CascadeType.ALL)
+    private List<Skill> skills;
+
+    @OneToMany(mappedBy = "industry", cascade = CascadeType.ALL)
+    private List<Profession> professions;
 }

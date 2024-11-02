@@ -1,4 +1,4 @@
-for deletin all table write this script:
+--for deletin all table write this script:
 DROP TABLE IF EXISTS
     role,
     app_user,
@@ -10,5 +10,7 @@ DROP TABLE IF EXISTS
     option,
     response,
     entered_survey,
-    profession_skill
+    profession_skill,
+	industry,
+	flyway_schema_history
 CASCADE;

@@ -1,20 +1,17 @@
 package com.sms.hrsam.service;
-import com.sms.hrsam.dto.SurveyCreateDTO; // SurveyCreateDTO için
-import com.sms.hrsam.entity.*; // Survey, User, Question, Option, Skill için
-import com.sms.hrsam.exception.ResourceNotFoundException; // ResourceNotFoundException için
+
+import com.sms.hrsam.dto.SurveyCreateDTO;
+import com.sms.hrsam.entity.*;
+import com.sms.hrsam.exception.ResourceNotFoundException;
 import com.sms.hrsam.repository.*;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-// Service class
 @Service
-@Transactional
 @Slf4j
 public class SurveyService {
 
@@ -37,8 +34,10 @@ public class SurveyService {
     }
 
     public List<Survey> getAllSurveys() {
-        return surveyRepository.findAll(); // Fetch all surveys from the repository
+        return surveyRepository.findAll(); // Fetch all surveys
     }
+
+    @Transactional
     public Survey createSurvey(SurveyCreateDTO surveyDTO, Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -63,15 +62,58 @@ public class SurveyService {
                                 option.setDescription(optionDTO.getDescription());
                                 option.setQuestion(question);
                                 return option;
-                            })
-                            .collect(Collectors.toList());
+                            }).collect(Collectors.toList());
 
                     question.setOptions(options);
                     return question;
-                })
-                .collect(Collectors.toList());
+                }).collect(Collectors.toList());
 
         survey.setQuestions(questions);
         return surveyRepository.save(survey);
+    }
+
+    public Survey getSurvey(Long id) {
+        return surveyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Survey not found"));
+    }
+
+    @Transactional
+    public Survey updateSurvey(Long id, SurveyCreateDTO surveyDTO) {
+        Survey existingSurvey = surveyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Survey not found"));
+
+        // Update survey questions, options, etc. as needed
+        List<Question> updatedQuestions = surveyDTO.getQuestions().stream()
+                .map(questionDTO -> {
+                    Question question = new Question();
+                    question.setText(questionDTO.getText());
+
+                    Skill skill = skillRepository.findById(questionDTO.getSkillId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Skill not found"));
+                    question.setSkill(skill);
+                    question.setSurvey(existingSurvey);
+
+                    List<Option> options = questionDTO.getOptions().stream()
+                            .map(optionDTO -> {
+                                Option option = new Option();
+                                option.setLevel(optionDTO.getLevel());
+                                option.setDescription(optionDTO.getDescription());
+                                option.setQuestion(question);
+                                return option;
+                            }).collect(Collectors.toList());
+
+                    question.setOptions(options);
+                    return question;
+                }).collect(Collectors.toList());
+
+        existingSurvey.setQuestions(updatedQuestions);
+        return surveyRepository.save(existingSurvey);
+    }
+
+    public void deleteSurvey(Long id) {
+        if (!surveyRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Survey not found");
+        }
+        surveyRepository.deleteById(id);
     }
 }

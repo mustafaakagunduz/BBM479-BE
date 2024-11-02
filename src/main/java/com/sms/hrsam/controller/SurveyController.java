@@ -26,8 +26,11 @@ public class SurveyController {
     }
 
     @PostMapping
-    public Survey createSurvey(@RequestBody SurveyCreateDTO surveyDTO, @RequestParam Long userId) {
-        return surveyService.createSurvey(surveyDTO, userId);
+    public ResponseEntity<Survey> createSurvey(
+            @RequestBody SurveyCreateDTO surveyDTO,
+            @RequestParam Long userId) {
+        Survey createdSurvey = surveyService.createSurvey(surveyDTO, userId);
+        return ResponseEntity.ok(createdSurvey);
     }
 
     @GetMapping("/{id}")
@@ -37,7 +40,9 @@ public class SurveyController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Survey> updateSurvey(@PathVariable Long id, @RequestBody SurveyCreateDTO surveyDTO) {
+    public ResponseEntity<Survey> updateSurvey(
+            @PathVariable Long id,
+            @RequestBody SurveyCreateDTO surveyDTO) {
         Survey updatedSurvey = surveyService.updateSurvey(id, surveyDTO);
         return ResponseEntity.ok(updatedSurvey);
     }
