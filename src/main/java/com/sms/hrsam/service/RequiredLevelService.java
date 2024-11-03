@@ -27,4 +27,27 @@ public class RequiredLevelService {
     public List<RequiredLevel> getAllRequiredLevels() {
         return requiredLevelRepository.findAll();
     }
+
+    public RequiredLevel updateRequiredLevel(Long id, RequiredLevel requiredLevel) {
+        RequiredLevel existingLevel = requiredLevelRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Required Level not found with id: " + id));
+
+        existingLevel.setProfession(requiredLevel.getProfession());
+        existingLevel.setSkill(requiredLevel.getSkill());
+        existingLevel.setRequiredLevel(requiredLevel.getRequiredLevel());
+
+        return requiredLevelRepository.save(existingLevel);
+    }
+
+    public void deleteRequiredLevel(Long id) {
+        if (!requiredLevelRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Required Level not found with id: " + id);
+        }
+        requiredLevelRepository.deleteById(id);
+    }
+
+    public RequiredLevel getRequiredLevelById(Long id) {
+        return requiredLevelRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Required Level not found with id: " + id));
+    }
 }

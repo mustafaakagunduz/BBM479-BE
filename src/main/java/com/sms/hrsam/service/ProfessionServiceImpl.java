@@ -1,7 +1,7 @@
 package com.sms.hrsam.service;
 
 import com.sms.hrsam.dto.ProfessionDTO;
-import com.sms.hrsam.dto.RequiredSkillDTO;
+import com.sms.hrsam.dto.RequiredLevelDTO;
 import com.sms.hrsam.entity.Profession;
 import com.sms.hrsam.entity.Industry;
 import com.sms.hrsam.entity.RequiredLevel;
@@ -60,7 +60,7 @@ public class ProfessionServiceImpl implements ProfessionService {
 
         // Required Skills ekleme
         if (professionDTO.getRequiredSkills() != null) {
-            for (RequiredSkillDTO skillDTO : professionDTO.getRequiredSkills()) {
+            for (RequiredLevelDTO skillDTO : professionDTO.getRequiredSkills()) {
                 Skill skill = skillRepository.findById(skillDTO.getSkillId())
                         .orElseThrow(() -> new ResourceNotFoundException("Skill not found with id: " + skillDTO.getSkillId()));
 
@@ -95,7 +95,7 @@ public class ProfessionServiceImpl implements ProfessionService {
 
         // Yeni required levels'ları ekle
         if (professionDTO.getRequiredSkills() != null) {
-            for (RequiredSkillDTO skillDTO : professionDTO.getRequiredSkills()) {
+            for (RequiredLevelDTO skillDTO : professionDTO.getRequiredSkills()) {
                 Skill skill = skillRepository.findById(skillDTO.getSkillId())
                         .orElseThrow(() -> new ResourceNotFoundException("Skill not found with id: " + skillDTO.getSkillId()));
 
@@ -127,8 +127,8 @@ public class ProfessionServiceImpl implements ProfessionService {
         // Required Skills'leri getir
         List<RequiredLevel> requiredLevels = requiredLevelRepository.findByProfessionId(profession.getId());
 
-        List<RequiredSkillDTO> requiredSkillDTOs = requiredLevels.stream()
-                .map(rl -> RequiredSkillDTO.builder()
+        List<RequiredLevelDTO> requiredSkillDTOs = requiredLevels.stream()
+                .map(rl -> RequiredLevelDTO.builder()
                         .id(rl.getId())
                         .skillId(rl.getSkill().getId())
                         .skillName(rl.getSkill().getName())
