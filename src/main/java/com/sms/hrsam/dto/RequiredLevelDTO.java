@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RequiredSkillDTO {
+public class RequiredLevelDTO {
     private Long id;
     private Long skillId;
     private String skillName;

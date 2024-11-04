@@ -17,5 +17,5 @@ public class ProfessionDTO {
     private String name;
     private Long industryId;
     private String industryName;
-    private List<RequiredSkillDTO> requiredSkills;
+    private List<RequiredLevelDTO> requiredSkills;
 }
