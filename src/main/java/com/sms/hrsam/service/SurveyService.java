@@ -1,10 +1,9 @@
 package com.sms.hrsam.service;
 
-import com.sms.hrsam.dto.SurveyCreateDTO;
+import com.sms.hrsam.dto.*;
 import com.sms.hrsam.entity.*;
-import com.sms.hrsam.exception.ResourceNotFoundException;
 import com.sms.hrsam.repository.*;
-import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,108 +11,151 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Slf4j
+@RequiredArgsConstructor
 public class SurveyService {
-
     private final SurveyRepository surveyRepository;
     private final QuestionRepository questionRepository;
-    private final SkillRepository skillRepository;
     private final OptionRepository optionRepository;
+    private final ResponseRepository responseRepository;
     private final UserRepository userRepository;
-
-    public SurveyService(SurveyRepository surveyRepository,
-                         QuestionRepository questionRepository,
-                         SkillRepository skillRepository,
-                         OptionRepository optionRepository,
-                         UserRepository userRepository) {
-        this.surveyRepository = surveyRepository;
-        this.questionRepository = questionRepository;
-        this.skillRepository = skillRepository;
-        this.optionRepository = optionRepository;
-        this.userRepository = userRepository;
-    }
-
-    public List<Survey> getAllSurveys() {
-        return surveyRepository.findAll(); // Fetch all surveys
-    }
+    private final IndustryRepository industryRepository;
+    private final SkillRepository skillRepository;
 
     @Transactional
-    public Survey createSurvey(SurveyCreateDTO surveyDTO, Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    public SurveyDTO createSurvey(SurveyDTO surveyDTO) {
+        User user = userRepository.findById(surveyDTO.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Industry industry = industryRepository.findById(surveyDTO.getIndustryId())
+                .orElseThrow(() -> new RuntimeException("Industry not found"));
 
         Survey survey = new Survey();
         survey.setUser(user);
+        Survey savedSurvey = surveyRepository.save(survey);
 
-        List<Question> questions = surveyDTO.getQuestions().stream()
-                .map(questionDTO -> {
-                    Question question = new Question();
-                    question.setText(questionDTO.getText());
+        surveyDTO.getQuestions().forEach(questionDTO -> {
+            Question question = new Question();
+            question.setText(questionDTO.getText());
+            question.setSurvey(savedSurvey);
 
-                    Skill skill = skillRepository.findById(questionDTO.getSkillId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Skill not found"));
-                    question.setSkill(skill);
-                    question.setSurvey(survey);
+            Skill skill = skillRepository.findById(questionDTO.getSkillId())
+                    .orElseThrow(() -> new RuntimeException("Skill not found"));
+            question.setSkill(skill);
 
-                    List<Option> options = questionDTO.getOptions().stream()
-                            .map(optionDTO -> {
-                                Option option = new Option();
-                                option.setLevel(optionDTO.getLevel());
-                                option.setDescription(optionDTO.getDescription());
-                                option.setQuestion(question);
-                                return option;
-                            }).collect(Collectors.toList());
+            // Create options
+            questionDTO.getOptions().forEach(optionDTO -> {
+                Option option = new Option();
+                option.setLevel(optionDTO.getLevel());
+                option.setDescription(optionDTO.getDescription());
+                option.setQuestion(question);
+                question.getOptions().add(option);
+            });
 
-                    question.setOptions(options);
-                    return question;
-                }).collect(Collectors.toList());
+            questionRepository.save(question);
+        });
 
-        survey.setQuestions(questions);
-        return surveyRepository.save(survey);
+        return mapToDTO(savedSurvey);
     }
 
-    public Survey getSurvey(Long id) {
-        return surveyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Survey not found"));
+    public List<SurveyDTO> getAllSurveys() {
+        return surveyRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public SurveyDTO getSurveyById(Long id) {
+        Survey survey = surveyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Survey not found"));
+        return mapToDTO(survey);
+    }
+
+    public List<SurveyDTO> getSurveysByUserId(Long userId) {
+        return surveyRepository.findByUserId(userId).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     @Transactional
-    public Survey updateSurvey(Long id, SurveyCreateDTO surveyDTO) {
-        Survey existingSurvey = surveyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Survey not found"));
+    public void submitSurveyResponse(Long surveyId, SurveyResponseDTO responseDTO) {
+        Survey survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new RuntimeException("Survey not found"));
 
-        // Update survey questions, options, etc. as needed
-        List<Question> updatedQuestions = surveyDTO.getQuestions().stream()
-                .map(questionDTO -> {
-                    Question question = new Question();
-                    question.setText(questionDTO.getText());
+        responseDTO.getResponses().forEach(questionResponse -> {
+            Response response = new Response();
+            response.setSurvey(survey);
 
-                    Skill skill = skillRepository.findById(questionDTO.getSkillId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Skill not found"));
-                    question.setSkill(skill);
-                    question.setSurvey(existingSurvey);
+            Question question = questionRepository.findById(questionResponse.getQuestionId())
+                    .orElseThrow(() -> new RuntimeException("Question not found"));
+            response.setQuestion(question);
 
-                    List<Option> options = questionDTO.getOptions().stream()
-                            .map(optionDTO -> {
-                                Option option = new Option();
-                                option.setLevel(optionDTO.getLevel());
-                                option.setDescription(optionDTO.getDescription());
-                                option.setQuestion(question);
-                                return option;
-                            }).collect(Collectors.toList());
+            Option option = optionRepository.findById(questionResponse.getOptionId())
+                    .orElseThrow(() -> new RuntimeException("Option not found"));
+            response.setOption(option);
 
-                    question.setOptions(options);
-                    return question;
-                }).collect(Collectors.toList());
+            response.setEnteredLevel(questionResponse.getSelectedLevel());
 
-        existingSurvey.setQuestions(updatedQuestions);
-        return surveyRepository.save(existingSurvey);
+            responseRepository.save(response);
+        });
     }
 
+    public List<SurveyResponseDTO> getSurveyResponses(Long surveyId) {
+        List<Response> responses = responseRepository.findBySurveyId(surveyId);
+        // Implementation of response mapping logic
+        return responses.stream()
+                .collect(Collectors.groupingBy(response -> response.getSurvey().getUser().getId()))
+                .entrySet().stream()
+                .map(entry -> {
+                    SurveyResponseDTO dto = new SurveyResponseDTO();
+                    dto.setUserId(entry.getKey());
+                    dto.setSurveyId(surveyId);
+                    dto.setResponses(entry.getValue().stream()
+                            .map(this::mapToQuestionResponse)
+                            .collect(Collectors.toList()));
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
     public void deleteSurvey(Long id) {
-        if (!surveyRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Survey not found");
-        }
         surveyRepository.deleteById(id);
+    }
+
+    private SurveyDTO mapToDTO(Survey survey) {
+        SurveyDTO dto = new SurveyDTO();
+        dto.setId(survey.getId());
+        dto.setUserId(survey.getUser().getId());
+        // Map other fields
+        dto.setQuestions(survey.getQuestions().stream()
+                .map(this::mapToQuestionDTO)
+                .collect(Collectors.toList()));
+        return dto;
+    }
+
+    private QuestionDTO mapToQuestionDTO(Question question) {
+        QuestionDTO dto = new QuestionDTO();
+        dto.setId(question.getId());
+        dto.setText(question.getText());
+        dto.setSkillId(question.getSkill().getId());
+        dto.setOptions(question.getOptions().stream()
+                .map(this::mapToOptionDTO)
+                .collect(Collectors.toList()));
+        return dto;
+    }
+
+    private OptionDTO mapToOptionDTO(Option option) {
+        OptionDTO dto = new OptionDTO();
+        dto.setId(option.getId());
+        dto.setLevel(option.getLevel());
+        dto.setDescription(option.getDescription());
+        return dto;
+    }
+
+    private QuestionResponseDTO mapToQuestionResponse(Response response) {
+        QuestionResponseDTO dto = new QuestionResponseDTO();
+        dto.setQuestionId(response.getQuestion().getId());
+        dto.setOptionId(response.getOption().getId());
+        dto.setSelectedLevel(response.getEnteredLevel());
+        return dto;
     }
 }
