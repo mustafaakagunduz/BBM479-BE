@@ -1,6 +1,7 @@
 package com.sms.hrsam.controller;
 
 import com.sms.hrsam.dto.ProfessionDTO;
+import com.sms.hrsam.entity.Profession;
 import com.sms.hrsam.service.ProfessionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-// Controller
+
 @RestController
 @RequestMapping("/api/professions")
 @RequiredArgsConstructor
@@ -20,6 +21,11 @@ public class ProfessionController {
     @GetMapping
     public ResponseEntity<List<ProfessionDTO>> getAllProfessions() {
         return ResponseEntity.ok(professionService.getAllProfessions());
+    }
+
+    @GetMapping("/industry/{industryId}")
+    public ResponseEntity<List<ProfessionDTO>> getProfessionsByIndustry(@PathVariable Long industryId) {
+        return ResponseEntity.ok(professionService.getProfessionsByIndustry(industryId));
     }
 
     @GetMapping("/{id}")

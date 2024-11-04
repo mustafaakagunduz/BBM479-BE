@@ -20,19 +20,34 @@ public class SurveyService {
     private final UserRepository userRepository;
     private final IndustryRepository industryRepository;
     private final SkillRepository skillRepository;
+    private final ProfessionRepository professionRepository;
 
     @Transactional
     public SurveyDTO createSurvey(SurveyDTO surveyDTO) {
+        // Get user
         User user = userRepository.findById(surveyDTO.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Get industry
         Industry industry = industryRepository.findById(surveyDTO.getIndustryId())
                 .orElseThrow(() -> new RuntimeException("Industry not found"));
 
+        // Get professions
+        List<Profession> professions = professionRepository.findAllById(surveyDTO.getSelectedProfessions());
+        if (professions.size() != surveyDTO.getSelectedProfessions().size()) {
+            throw new RuntimeException("Some professions were not found");
+        }
+
+        // Create and save survey
         Survey survey = new Survey();
+        survey.setTitle(surveyDTO.getTitle());
         survey.setUser(user);
+        survey.setIndustry(industry);
+        survey.setProfessions(professions);
+
         Survey savedSurvey = surveyRepository.save(survey);
 
+        // Create and save questions
         surveyDTO.getQuestions().forEach(questionDTO -> {
             Question question = new Question();
             question.setText(questionDTO.getText());
@@ -124,13 +139,22 @@ public class SurveyService {
     private SurveyDTO mapToDTO(Survey survey) {
         SurveyDTO dto = new SurveyDTO();
         dto.setId(survey.getId());
+        dto.setTitle(survey.getTitle());
         dto.setUserId(survey.getUser().getId());
-        // Map other fields
-        dto.setQuestions(survey.getQuestions().stream()
-                .map(this::mapToQuestionDTO)
-                .collect(Collectors.toList()));
+        dto.setIndustryId(survey.getIndustry().getId());
+        dto.setSelectedProfessions(
+                survey.getProfessions().stream()
+                        .map(Profession::getId)
+                        .collect(Collectors.toList())
+        );
+        dto.setQuestions(
+                survey.getQuestions().stream()
+                        .map(this::mapToQuestionDTO)
+                        .collect(Collectors.toList())
+        );
         return dto;
     }
+
 
     private QuestionDTO mapToQuestionDTO(Question question) {
         QuestionDTO dto = new QuestionDTO();

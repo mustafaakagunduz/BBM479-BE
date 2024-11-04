@@ -144,4 +144,43 @@ public class ProfessionServiceImpl implements ProfessionService {
                 .requiredSkills(requiredSkillDTOs)
                 .build();
     }
+    @Override
+    @Transactional(readOnly = true) // Sadece okuma işlemi olduğu için readOnly=true
+    public List<ProfessionDTO> getProfessionsByIndustry(Long industryId) {
+        // 1. Önce industry'nin var olup olmadığını kontrol ediyoruz
+        if (!industryRepository.existsById(industryId)) {
+            throw new ResourceNotFoundException("Industry not found with id: " + industryId);
+        }
+
+        // 2. İlgili industry'ye ait tüm meslekleri getir
+        List<Profession> professions = professionRepository.findByIndustryId(industryId);
+
+        // 3. Her bir profession için required skills'leri içeren DTO'ları oluştur
+        return professions.stream()
+                .map(profession -> {
+                    // Her bir profession için required skills'leri getir
+                    List<RequiredLevel> requiredLevels = requiredLevelRepository
+                            .findByProfessionId(profession.getId());
+
+                    // RequiredLevel'ları DTO'ya dönüştür
+                    List<RequiredLevelDTO> requiredLevelDTOs = requiredLevels.stream()
+                            .map(rl -> RequiredLevelDTO.builder()
+                                    .id(rl.getId())
+                                    .skillId(rl.getSkill().getId())
+                                    .skillName(rl.getSkill().getName())
+                                    .requiredLevel(rl.getRequiredLevel())
+                                    .build())
+                            .collect(Collectors.toList());
+
+                    // Her bir profession için tam bir DTO oluştur
+                    return ProfessionDTO.builder()
+                            .id(profession.getId())
+                            .name(profession.getName())
+                            .industryId(profession.getIndustry().getId())
+                            .industryName(profession.getIndustry().getName())
+                            .requiredSkills(requiredLevelDTOs)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
 }

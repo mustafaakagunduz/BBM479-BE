@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS
     app_user,
     skill,
     profession,
+	survey_professions,
     required_level,
     survey,
     question,

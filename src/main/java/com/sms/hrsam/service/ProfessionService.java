@@ -9,4 +9,5 @@ public interface ProfessionService {
     ProfessionDTO createProfession(ProfessionDTO professionDTO);
     ProfessionDTO updateProfession(Long id, ProfessionDTO professionDTO);
     void deleteProfession(Long id);
+     List<ProfessionDTO> getProfessionsByIndustry(Long industryId);
 }
