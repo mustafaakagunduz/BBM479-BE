@@ -49,6 +49,11 @@ public class SurveyController {
         return ResponseEntity.ok(surveyService.getSurveyResponses(surveyId));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<SurveyDTO> updateSurvey(@PathVariable Long id, @RequestBody SurveyDTO surveyDTO) {
+        return ResponseEntity.ok(surveyService.updateSurvey(id, surveyDTO));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSurvey(@PathVariable Long id) {
         surveyService.deleteSurvey(id);

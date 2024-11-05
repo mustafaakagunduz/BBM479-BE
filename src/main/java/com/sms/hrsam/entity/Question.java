@@ -23,6 +23,6 @@ public class Question {
     @JoinColumn(name = "survey_id")
     private Survey survey; // Survey sınıfının import edilmesi gerekiyor
 
-    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL)
-    private List<Option> options = new ArrayList<>(); // Option sınıfının import edilmesi gerekiyor
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Option> options = new ArrayList<>();
 }

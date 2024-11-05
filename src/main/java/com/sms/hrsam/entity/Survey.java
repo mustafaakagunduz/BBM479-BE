@@ -23,7 +23,7 @@ public class Survey {
     @JoinColumn(name = "industry_id")
     private Industry industry;
 
-    @OneToMany(mappedBy = "survey", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "survey", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Question> questions = new ArrayList<>();
 
     @ManyToMany
