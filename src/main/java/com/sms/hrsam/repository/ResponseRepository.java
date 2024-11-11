@@ -1,14 +1,15 @@
 package com.sms.hrsam.repository;
 
 import com.sms.hrsam.entity.Response;
-import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-// Repository interfaces
-@Repository
 public interface ResponseRepository extends JpaRepository<Response, Long> {
+    @Query("SELECT r FROM Response r WHERE r.survey.id = :surveyId AND r.user.id = :userId")
+    List<Response> findBySurveyIdAndUserId(@Param("surveyId") Long surveyId, @Param("userId") Long userId);
+
     List<Response> findBySurveyId(Long surveyId);
-    List<Response> findBySurveyIdAndUserId(Long surveyId, Long userId);
 }
