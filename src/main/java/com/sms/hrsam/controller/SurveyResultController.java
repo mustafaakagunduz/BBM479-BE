@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/surveys")
@@ -26,6 +27,70 @@ public class SurveyResultController {
 
     private final SurveyResultService surveyResultService;
     private final ResponseService responseService;
+
+    @GetMapping("/{surveyId}/results/{resultId}")
+    public ResponseEntity<SurveyResultDTO> getResultById(
+            @PathVariable Long surveyId,
+            @PathVariable Long resultId) {
+        log.info("Fetching specific result for surveyId: {} and resultId: {}", surveyId, resultId);
+        return surveyResultService.findSurveyResultById(resultId)
+                .filter(result -> result.getSurveyId().equals(surveyId))
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{surveyId}/results/{userId}/calculate")
+    public ResponseEntity<SurveyResultDTO> calculateResult(
+            @PathVariable Long surveyId,
+            @PathVariable Long userId,
+            @RequestParam(required = false) Long t,
+            HttpServletRequest request) {
+
+        if (t != null) {
+            return ResponseEntity.ok(surveyResultService.calculateAndSaveSurveyResult(surveyId, userId));
+        }
+
+        String requestKey = "calculating_" + surveyId + "_" + userId;
+        Object mutex = request.getSession().getAttribute(requestKey);
+
+        if (mutex != null) {
+            return ResponseEntity
+                    .status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(null);
+        }
+
+        try {
+            request.getSession().setAttribute(requestKey, true);
+
+            // Önce anketin tamamlanıp tamamlanmadığını kontrol et
+            boolean isCompleted = responseService.isSurveyCompletedByUser(surveyId, userId);
+            if (!isCompleted) {
+                return ResponseEntity
+                        .badRequest()
+                        .body(null);
+            }
+
+            // Var olan son sonucu kontrol et
+            Optional<SurveyResultDTO> existingResult = surveyResultService.findLatestSurveyResult(surveyId, userId);
+            if (existingResult.isPresent()) {
+                LocalDateTime fiveMinutesAgo = LocalDateTime.now().minusMinutes(5);
+                if (existingResult.get().getCreatedAt().isAfter(fiveMinutesAgo)) {
+                    return ResponseEntity.ok(existingResult.get());
+                }
+            }
+
+            log.info("Calculating new result for surveyId: {} and userId: {}", surveyId, userId);
+            SurveyResultDTO result = surveyResultService.calculateAndSaveSurveyResult(surveyId, userId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Error calculating result:", e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);
+        } finally {
+            request.getSession().removeAttribute(requestKey);
+        }
+    }
 
     @GetMapping("/{surveyId}/responses/check/{userId}")
     public ResponseEntity<?> checkSurveyCompletion(@PathVariable Long surveyId, @PathVariable Long userId) {
@@ -39,38 +104,14 @@ public class SurveyResultController {
         ));
     }
 
-    @PostMapping("/{surveyId}/results/{userId}/calculate")
-    public ResponseEntity<SurveyResultDTO> calculateResult(
-            @PathVariable Long surveyId,
-            @PathVariable Long userId,
-            HttpServletRequest request) {
-
-        String requestKey = "calculating_" + surveyId + "_" + userId;
-        Object mutex = request.getSession().getAttribute(requestKey);
-
-        if (mutex != null) {
-            return ResponseEntity
-                    .status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(null);
-        }
-
-        try {
-            request.getSession().setAttribute(requestKey, true);
-            log.info("Calculating result for surveyId: {} and userId: {}", surveyId, userId);
-            SurveyResultDTO result = surveyResultService.calculateAndSaveSurveyResult(surveyId, userId);
-            return ResponseEntity.ok(result);
-        } finally {
-            request.getSession().removeAttribute(requestKey);
-        }
-    }
-
     @GetMapping("/{surveyId}/results/{userId}/latest")
     public ResponseEntity<SurveyResultDTO> getLatestResult(
             @PathVariable Long surveyId,
             @PathVariable Long userId) {
         log.info("Fetching latest result for surveyId: {} and userId: {}", surveyId, userId);
-        SurveyResultDTO result = surveyResultService.getLatestSurveyResult(surveyId, userId);
-        return ResponseEntity.ok(result);
+        return surveyResultService.findLatestSurveyResult(surveyId, userId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{surveyId}/results/{userId}/all")
@@ -89,8 +130,9 @@ public class SurveyResultController {
             @PathVariable Integer attemptNumber) {
         log.info("Fetching result for surveyId: {}, userId: {}, attemptNumber: {}",
                 surveyId, userId, attemptNumber);
-        SurveyResultDTO result = surveyResultService.getSurveyResultByAttempt(surveyId, userId, attemptNumber);
-        return ResponseEntity.ok(result);
+        return surveyResultService.findSurveyResultByAttempt(surveyId, userId, attemptNumber)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @ExceptionHandler(RuntimeException.class)

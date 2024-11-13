@@ -28,19 +28,20 @@ public class SurveyResult {
             fetch = FetchType.LAZY)
     private List<ProfessionMatch> professionMatches = new ArrayList<>();
 
-    private LocalDateTime createdAt;
-
-    private Integer attemptNumber;
-
-    // Helper method to add ProfessionMatch
+    // Helper methods for bidirectional relationship
     public void addProfessionMatch(ProfessionMatch match) {
         professionMatches.add(match);
         match.setSurveyResult(this);
     }
 
-    // Helper method to remove ProfessionMatch
     public void removeProfessionMatch(ProfessionMatch match) {
         professionMatches.remove(match);
         match.setSurveyResult(null);
     }
+
+    private LocalDateTime createdAt;
+
+    private Integer attemptNumber;
+
+
 }

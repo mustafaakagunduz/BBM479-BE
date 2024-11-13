@@ -25,6 +25,12 @@ public class SurveyResultService {
 
     private static final Object lock = new Object();
 
+    public Optional<SurveyResultDTO> findSurveyResultById(Long resultId) {
+        log.info("Fetching survey result by id: {}", resultId);
+        return surveyResultRepository.findById(resultId)
+                .map(this::mapToDTO);
+    }
+
     @Transactional
     public SurveyResultDTO calculateAndSaveSurveyResult(Long surveyId, Long userId) {
         synchronized(lock) {
@@ -41,7 +47,7 @@ public class SurveyResultService {
                 User user = userRepository.findById(userId)
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
-                // User responses'ları al
+                // En son responses'ları al
                 List<Response> userResponses = responseRepository.findBySurveyIdAndUserId(surveyId, userId);
                 if (userResponses.isEmpty()) {
                     throw new RuntimeException("No responses found for this survey");
@@ -61,40 +67,28 @@ public class SurveyResultService {
                 surveyResult.setSurvey(survey);
                 surveyResult.setCreatedAt(LocalDateTime.now());
                 surveyResult.setAttemptNumber(lastAttemptNumber + 1);
+                surveyResult.setProfessionMatches(new ArrayList<>()); // Initialize the list
+
+                // İlk kaydet
+                final SurveyResult finalSurveyResult = surveyResultRepository.save(surveyResult);
 
                 // Profession matches'leri hesapla ve ekle
                 survey.getProfessions().forEach(profession -> {
                     List<RequiredLevel> requiredLevels = requiredLevelRepository.findByProfessionId(profession.getId());
-
                     if (!requiredLevels.isEmpty()) {
-                        double totalScore = 0.0;
-                        int totalRequirements = requiredLevels.size();
-
-                        for (RequiredLevel requirement : requiredLevels) {
-                            Long skillId = requirement.getSkill().getId();
-                            Integer userLevel = userSkillLevels.get(skillId);
-                            Integer requiredLevel = requirement.getRequiredLevel();
-
-                            if (userLevel != null && requiredLevel != null) {
-                                double score = Math.min(userLevel, requiredLevel) / (double) requiredLevel;
-                                totalScore += score;
-                            }
-                        }
-
-                        double matchPercentage = (totalScore / totalRequirements) * 100;
-                        matchPercentage = Math.min(100, Math.max(0, matchPercentage));
-                        matchPercentage = Math.round(matchPercentage * 100.0) / 100.0;
+                        double totalScore = calculateTotalScore(requiredLevels, userSkillLevels);
+                        double matchPercentage = calculateMatchPercentage(totalScore, requiredLevels.size());
 
                         ProfessionMatch professionMatch = new ProfessionMatch();
                         professionMatch.setProfession(profession);
                         professionMatch.setMatchPercentage(matchPercentage);
-                        professionMatch.setSurveyResult(surveyResult);
-
-                        surveyResult.getProfessionMatches().add(professionMatch);
+                        finalSurveyResult.addProfessionMatch(professionMatch);
                     }
                 });
 
-                SurveyResult savedResult = surveyResultRepository.save(surveyResult);
+                // Son kez kaydet
+                SurveyResult savedResult = surveyResultRepository.save(finalSurveyResult);
+
                 log.info("Saved new survey result with id: {} and attempt: {}",
                         savedResult.getId(), savedResult.getAttemptNumber());
 
@@ -106,27 +100,42 @@ public class SurveyResultService {
             }
         }
     }
-
-    // En son denemeyi getir
-    public SurveyResultDTO getLatestSurveyResult(Long surveyId, Long userId) {
-        return surveyResultRepository.findFirstBySurveyIdAndUserIdOrderByAttemptNumberDesc(surveyId, userId)
-                .map(this::mapToDTO)
-                .orElseThrow(() -> new RuntimeException("Survey result not found"));
+    private double calculateTotalScore(List<RequiredLevel> requiredLevels, Map<Long, Integer> userSkillLevels) {
+        return requiredLevels.stream()
+                .filter(requirement -> userSkillLevels.containsKey(requirement.getSkill().getId()))
+                .mapToDouble(requirement -> {
+                    Integer userLevel = userSkillLevels.get(requirement.getSkill().getId());
+                    Integer requiredLevel = requirement.getRequiredLevel();
+                    return Math.min(userLevel, requiredLevel) / (double) requiredLevel;
+                })
+                .sum();
     }
 
-    // Tüm denemeleri getir
+    private double calculateMatchPercentage(double totalScore, int totalRequirements) {
+        double matchPercentage = (totalScore / totalRequirements) * 100;
+        matchPercentage = Math.min(100, Math.max(0, matchPercentage));
+        return Math.round(matchPercentage * 100.0) / 100.0;
+    }
+
+
+    public Optional<SurveyResultDTO> findLatestSurveyResult(Long surveyId, Long userId) {
+        return surveyResultRepository
+                .findFirstBySurveyIdAndUserIdOrderByAttemptNumberDesc(surveyId, userId)
+                .map(this::mapToDTO);
+    }
+
     public List<SurveyResultDTO> getAllSurveyResults(Long surveyId, Long userId) {
-        return surveyResultRepository.findAllBySurveyIdAndUserIdOrderByAttemptNumberDesc(surveyId, userId)
+        return surveyResultRepository
+                .findAllBySurveyIdAndUserIdOrderByAttemptNumberDesc(surveyId, userId)
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
-    // Belirli bir denemeyi getir
-    public SurveyResultDTO getSurveyResultByAttempt(Long surveyId, Long userId, Integer attemptNumber) {
-        return surveyResultRepository.findBySurveyIdAndUserIdAndAttemptNumber(surveyId, userId, attemptNumber)
-                .map(this::mapToDTO)
-                .orElseThrow(() -> new RuntimeException("Survey result not found for this attempt"));
+    public Optional<SurveyResultDTO> findSurveyResultByAttempt(Long surveyId, Long userId, Integer attemptNumber) {
+        return surveyResultRepository
+                .findBySurveyIdAndUserIdAndAttemptNumber(surveyId, userId, attemptNumber)
+                .map(this::mapToDTO);
     }
 
     private SurveyResultDTO mapToDTO(SurveyResult result) {

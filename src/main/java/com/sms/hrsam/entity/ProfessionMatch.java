@@ -11,7 +11,7 @@ public class ProfessionMatch {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "survey_result_id")
+    @JoinColumn(name = "survey_result_id", nullable = false)
     private SurveyResult surveyResult;
 
     @ManyToOne(fetch = FetchType.LAZY)

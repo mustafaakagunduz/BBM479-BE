@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,4 +35,16 @@ public interface SurveyResultRepository extends JpaRepository<SurveyResult, Long
             Long userId,
             Integer attemptNumber
     );
+
+    @Query("SELECT sr FROM SurveyResult sr " +
+            "WHERE sr.survey.id = :surveyId " +
+            "AND sr.user.id = :userId " +
+            "AND sr.createdAt > :timestamp " +
+            "ORDER BY sr.createdAt DESC")
+    Optional<SurveyResult> findRecentBySurveyIdAndUserId(
+            @Param("surveyId") Long surveyId,
+            @Param("userId") Long userId,
+            @Param("timestamp") LocalDateTime timestamp
+    );
+
 }
