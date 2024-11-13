@@ -7,10 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "survey_result",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"user_id", "survey_id"})
-        })
+@Table(name = "survey_result")
 @Data
 public class SurveyResult {
     @Id
@@ -32,6 +29,8 @@ public class SurveyResult {
     private List<ProfessionMatch> professionMatches = new ArrayList<>();
 
     private LocalDateTime createdAt;
+
+    private Integer attemptNumber;
 
     // Helper method to add ProfessionMatch
     public void addProfessionMatch(ProfessionMatch match) {

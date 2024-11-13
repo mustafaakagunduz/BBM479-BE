@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -24,13 +25,18 @@ import java.util.Map;
 public class SurveyResultController {
 
     private final SurveyResultService surveyResultService;
-
-    private final ResponseService responseService; // Response kontrolü için
+    private final ResponseService responseService;
 
     @GetMapping("/{surveyId}/responses/check/{userId}")
     public ResponseEntity<?> checkSurveyCompletion(@PathVariable Long surveyId, @PathVariable Long userId) {
+        log.info("Checking survey completion for surveyId: {} and userId: {}", surveyId, userId);
         boolean isCompleted = responseService.isSurveyCompletedByUser(surveyId, userId);
-        return ResponseEntity.ok(Map.of("completed", isCompleted));
+        log.info("Survey completion status: {}", isCompleted);
+
+        return ResponseEntity.ok(Map.of(
+                "completed", isCompleted,
+                "message", isCompleted ? "Survey is completed" : "Please complete the survey first"
+        ));
     }
 
     @PostMapping("/{surveyId}/results/{userId}/calculate")
@@ -38,7 +44,7 @@ public class SurveyResultController {
             @PathVariable Long surveyId,
             @PathVariable Long userId,
             HttpServletRequest request) {
-        // İsteğin zaten işleniyor olup olmadığını kontrol et
+
         String requestKey = "calculating_" + surveyId + "_" + userId;
         Object mutex = request.getSession().getAttribute(requestKey);
 
@@ -58,14 +64,45 @@ public class SurveyResultController {
         }
     }
 
-    @GetMapping("/{surveyId}/results/{userId}")
-    public ResponseEntity<SurveyResultDTO> getResult(
+    @GetMapping("/{surveyId}/results/{userId}/latest")
+    public ResponseEntity<SurveyResultDTO> getLatestResult(
             @PathVariable Long surveyId,
             @PathVariable Long userId) {
-        log.info("Fetching result for surveyId: {} and userId: {}", surveyId, userId);
-        SurveyResultDTO result = surveyResultService.getSurveyResult(surveyId, userId);
+        log.info("Fetching latest result for surveyId: {} and userId: {}", surveyId, userId);
+        SurveyResultDTO result = surveyResultService.getLatestSurveyResult(surveyId, userId);
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/{surveyId}/results/{userId}/all")
+    public ResponseEntity<List<SurveyResultDTO>> getAllResults(
+            @PathVariable Long surveyId,
+            @PathVariable Long userId) {
+        log.info("Fetching all results for surveyId: {} and userId: {}", surveyId, userId);
+        List<SurveyResultDTO> results = surveyResultService.getAllSurveyResults(surveyId, userId);
+        return ResponseEntity.ok(results);
+    }
 
+    @GetMapping("/{surveyId}/results/{userId}/attempt/{attemptNumber}")
+    public ResponseEntity<SurveyResultDTO> getResultByAttempt(
+            @PathVariable Long surveyId,
+            @PathVariable Long userId,
+            @PathVariable Integer attemptNumber) {
+        log.info("Fetching result for surveyId: {}, userId: {}, attemptNumber: {}",
+                surveyId, userId, attemptNumber);
+        SurveyResultDTO result = surveyResultService.getSurveyResultByAttempt(surveyId, userId, attemptNumber);
+        return ResponseEntity.ok(result);
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
+        log.error("Error occurred: ", ex);
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(error);
+    }
 }

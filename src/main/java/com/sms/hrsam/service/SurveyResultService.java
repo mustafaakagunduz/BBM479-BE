@@ -27,17 +27,13 @@ public class SurveyResultService {
 
     @Transactional
     public SurveyResultDTO calculateAndSaveSurveyResult(Long surveyId, Long userId) {
-        synchronized(lock) {  // Eşzamanlı işlemleri engelle
+        synchronized(lock) {
             try {
                 log.info("Starting calculation for surveyId: {} and userId: {}", surveyId, userId);
 
-                // Önce tüm mevcut sonuçları sil
-                List<SurveyResult> existingResults = surveyResultRepository.findAllBySurveyIdAndUserId(surveyId, userId);
-                if (!existingResults.isEmpty()) {
-                    log.info("Found {} existing results, deleting them all", existingResults.size());
-                    surveyResultRepository.deleteAll(existingResults);
-                    surveyResultRepository.flush();
-                }
+                // En son deneme numarasını bul
+                Integer lastAttemptNumber = surveyResultRepository.findMaxAttemptNumberBySurveyIdAndUserId(surveyId, userId)
+                        .orElse(0);
 
                 Survey survey = surveyRepository.findById(surveyId)
                         .orElseThrow(() -> new RuntimeException("Survey not found"));
@@ -64,6 +60,7 @@ public class SurveyResultService {
                 surveyResult.setUser(user);
                 surveyResult.setSurvey(survey);
                 surveyResult.setCreatedAt(LocalDateTime.now());
+                surveyResult.setAttemptNumber(lastAttemptNumber + 1);
 
                 // Profession matches'leri hesapla ve ekle
                 survey.getProfessions().forEach(profession -> {
@@ -86,8 +83,6 @@ public class SurveyResultService {
 
                         double matchPercentage = (totalScore / totalRequirements) * 100;
                         matchPercentage = Math.min(100, Math.max(0, matchPercentage));
-
-                        // Yuvarlama işlemi - virgülden sonra 2 basamak
                         matchPercentage = Math.round(matchPercentage * 100.0) / 100.0;
 
                         ProfessionMatch professionMatch = new ProfessionMatch();
@@ -99,9 +94,9 @@ public class SurveyResultService {
                     }
                 });
 
-                // Sonucu kaydet
                 SurveyResult savedResult = surveyResultRepository.save(surveyResult);
-                log.info("Saved new survey result with id: {}", savedResult.getId());
+                log.info("Saved new survey result with id: {} and attempt: {}",
+                        savedResult.getId(), savedResult.getAttemptNumber());
 
                 return mapToDTO(savedResult);
 
@@ -112,16 +107,26 @@ public class SurveyResultService {
         }
     }
 
+    // En son denemeyi getir
+    public SurveyResultDTO getLatestSurveyResult(Long surveyId, Long userId) {
+        return surveyResultRepository.findFirstBySurveyIdAndUserIdOrderByAttemptNumberDesc(surveyId, userId)
+                .map(this::mapToDTO)
+                .orElseThrow(() -> new RuntimeException("Survey result not found"));
+    }
 
-    public SurveyResultDTO getSurveyResult(Long surveyId, Long userId) {
-        List<SurveyResult> results = surveyResultRepository.findAllBySurveyIdAndUserId(surveyId, userId);
-        if (results.isEmpty()) {
-            throw new RuntimeException("Survey result not found");
-        }
-        // En son oluşturulan sonucu döndür
-        return mapToDTO(results.stream()
-                .max(Comparator.comparing(SurveyResult::getCreatedAt))
-                .orElseThrow(() -> new RuntimeException("Survey result not found")));
+    // Tüm denemeleri getir
+    public List<SurveyResultDTO> getAllSurveyResults(Long surveyId, Long userId) {
+        return surveyResultRepository.findAllBySurveyIdAndUserIdOrderByAttemptNumberDesc(surveyId, userId)
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    // Belirli bir denemeyi getir
+    public SurveyResultDTO getSurveyResultByAttempt(Long surveyId, Long userId, Integer attemptNumber) {
+        return surveyResultRepository.findBySurveyIdAndUserIdAndAttemptNumber(surveyId, userId, attemptNumber)
+                .map(this::mapToDTO)
+                .orElseThrow(() -> new RuntimeException("Survey result not found for this attempt"));
     }
 
     private SurveyResultDTO mapToDTO(SurveyResult result) {
@@ -130,6 +135,7 @@ public class SurveyResultService {
         dto.setUserId(result.getUser().getId());
         dto.setSurveyId(result.getSurvey().getId());
         dto.setCreatedAt(result.getCreatedAt());
+        dto.setAttemptNumber(result.getAttemptNumber());
 
         dto.setProfessionMatches(result.getProfessionMatches().stream()
                 .map(this::mapToProfessionMatchDTO)

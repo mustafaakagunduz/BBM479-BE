@@ -10,7 +10,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -67,31 +71,34 @@ public class ResponseService {
     }
     public boolean isSurveyCompletedByUser(Long surveyId, Long userId) {
         try {
-            // Anketi bul
-            Survey survey = surveyRepository.findById(surveyId)
-                    .orElseThrow(() -> new RuntimeException("Survey not found"));
+            // Anketteki soruları al
+            List<Question> questions = questionRepository.findBySurveyId(surveyId);
+            Set<Long> questionIds = questions.stream()
+                    .map(Question::getId)
+                    .collect(Collectors.toSet());
 
-            // Anketteki tüm soruları say
-            long totalQuestions = questionRepository.findBySurveyId(surveyId).size();
-            log.info("Total questions in survey: {}", totalQuestions);
+            // Kullanıcının cevaplarını al
+            List<Response> responses = responseRepository.findBySurveyIdAndUserId(surveyId, userId);
 
-            // Kullanıcının cevapladığı soruları say
-            long answeredQuestions = responseRepository.findBySurveyIdAndUserId(surveyId, userId).size();
-            log.info("Answered questions by user: {}", answeredQuestions);
+            // Her benzersiz soru için son cevabı al
+            Map<Long, Response> latestResponses = responses.stream()
+                    .collect(Collectors.groupingBy(
+                            response -> response.getQuestion().getId(),
+                            Collectors.collectingAndThen(
+                                    Collectors.maxBy(Comparator.comparing(Response::getId)),
+                                    optional -> optional.orElse(null)
+                            )
+                    ));
 
-            // Tüm cevapları kontrol et (null veya boş cevap olmamalı)
-            List<Response> userResponses = responseRepository.findBySurveyIdAndUserId(surveyId, userId);
-            boolean allResponsesValid = userResponses.stream()
-                    .allMatch(response -> response.getEnteredLevel() != null);
+            // Her sorunun cevaplanıp cevaplanmadığını kontrol et
+            boolean allQuestionsAnswered = questionIds.stream()
+                    .allMatch(qId -> latestResponses.containsKey(qId) &&
+                            latestResponses.get(qId).getEnteredLevel() != null);
 
-            boolean isCompleted = totalQuestions > 0 &&
-                    totalQuestions == answeredQuestions &&
-                    allResponsesValid;
+            log.info("Survey completion check - Total Questions: {}, Unique Answered Questions: {}, All Questions Answered: {}",
+                    questionIds.size(), latestResponses.size(), allQuestionsAnswered);
 
-            log.info("Survey completion check - Total Questions: {}, Answered Questions: {}, All Responses Valid: {}, Is Completed: {}",
-                    totalQuestions, answeredQuestions, allResponsesValid, isCompleted);
-
-            return isCompleted;
+            return allQuestionsAnswered;
 
         } catch (Exception e) {
             log.error("Error checking survey completion:", e);
