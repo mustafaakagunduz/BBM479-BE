@@ -87,6 +87,9 @@ public class SurveyResultService {
                         double matchPercentage = (totalScore / totalRequirements) * 100;
                         matchPercentage = Math.min(100, Math.max(0, matchPercentage));
 
+                        // Yuvarlama işlemi - virgülden sonra 2 basamak
+                        matchPercentage = Math.round(matchPercentage * 100.0) / 100.0;
+
                         ProfessionMatch professionMatch = new ProfessionMatch();
                         professionMatch.setProfession(profession);
                         professionMatch.setMatchPercentage(matchPercentage);
@@ -108,6 +111,8 @@ public class SurveyResultService {
             }
         }
     }
+
+
     public SurveyResultDTO getSurveyResult(Long surveyId, Long userId) {
         List<SurveyResult> results = surveyResultRepository.findAllBySurveyIdAndUserId(surveyId, userId);
         if (results.isEmpty()) {
