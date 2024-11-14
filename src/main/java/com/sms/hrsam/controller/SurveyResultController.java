@@ -43,10 +43,11 @@ public class SurveyResultController {
     public ResponseEntity<SurveyResultDTO> calculateResult(
             @PathVariable Long surveyId,
             @PathVariable Long userId,
-            @RequestParam(required = false) Long t,
+            @RequestParam(required = false) Boolean force,
             HttpServletRequest request) {
 
-        if (t != null) {
+        if (force != null && force) {
+            // Her zaman yeni hesaplama yap
             return ResponseEntity.ok(surveyResultService.calculateAndSaveSurveyResult(surveyId, userId));
         }
 

@@ -155,6 +155,7 @@ public class SurveyResultService {
 
     private ProfessionMatchDTO mapToProfessionMatchDTO(ProfessionMatch match) {
         ProfessionMatchDTO dto = new ProfessionMatchDTO();
+        dto.setId(match.getId());         // Yeni eklenen
         dto.setProfessionId(match.getProfession().getId());
         dto.setProfessionName(match.getProfession().getName());
         dto.setMatchPercentage(match.getMatchPercentage());

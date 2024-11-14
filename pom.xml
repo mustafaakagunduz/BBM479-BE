@@ -84,12 +84,25 @@
 			<scope>test</scope>
 		</dependency>-->
 
+
 	</dependencies>
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>9.17.0</version>
+				<configuration>
+					<url>jdbc:postgresql://localhost:5432/hrsamDB</url>
+					<user>postgres</user>
+					<password>postgres</password>
+					<cleanDisabled>false</cleanDisabled>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
