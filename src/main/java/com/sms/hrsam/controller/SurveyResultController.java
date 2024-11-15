@@ -164,4 +164,18 @@ public class SurveyResultController {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(error);
     }
+    @GetMapping("/results/user/{userId}")
+    public ResponseEntity<List<SurveyResultDTO>> getAllResultsByUserId(
+            @PathVariable Long userId) {
+        log.info("Fetching all results for userId: {}", userId);
+        List<SurveyResultDTO> results = surveyResultService.getAllResultsByUserId(userId);
+        return ResponseEntity.ok(results);
+    }
+
+    @DeleteMapping("/results/{resultId}")
+    public ResponseEntity<Void> deleteResult(@PathVariable Long resultId) {
+        log.info("Deleting result with id: {}", resultId);
+        surveyResultService.deleteResult(resultId);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -47,4 +47,7 @@ public interface SurveyResultRepository extends JpaRepository<SurveyResult, Long
             @Param("timestamp") LocalDateTime timestamp
     );
 
+
+    List<SurveyResult> findAllByUserIdOrderByCreatedAtDesc(Long userId);
+
 }

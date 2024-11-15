@@ -194,4 +194,24 @@ public class SurveyResultService {
         dto.setMatchPercentage(match.getMatchPercentage());
         return dto;
     }
+    // SurveyResultService'e eklenecek metotlar
+
+    public List<SurveyResultDTO> getAllResultsByUserId(Long userId) {
+        log.info("Fetching all results for userId: {}", userId);
+        return surveyResultRepository
+                .findAllByUserIdOrderByCreatedAtDesc(userId)  // Bu metodu repository'ye de eklememiz gerekecek
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteResult(Long resultId) {
+        log.info("Deleting result with id: {}", resultId);
+        surveyResultRepository.findById(resultId)
+                .ifPresent(result -> {
+                    surveyResultRepository.delete(result);
+                    log.info("Successfully deleted result with id: {}", resultId);
+                });
+    }
 }
