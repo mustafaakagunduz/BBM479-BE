@@ -33,9 +33,23 @@ public class SurveyResultService {
 
     @Transactional
     public SurveyResultDTO calculateAndSaveSurveyResult(Long surveyId, Long userId) {
-        synchronized(lock) {
+        synchronized (String.format("calc_%d_%d", surveyId, userId).intern()) {
             try {
                 log.info("Starting calculation for surveyId: {} and userId: {}", surveyId, userId);
+
+                // Son 1 saniye içinde oluşturulmuş sonuç var mı kontrol et
+                Optional<SurveyResult> recentResult = surveyResultRepository
+                        .findRecentBySurveyIdAndUserId(
+                                surveyId,
+                                userId,
+                                LocalDateTime.now().minusSeconds(1)
+                        );
+
+                if (recentResult.isPresent()) {
+                    log.info("Recent result found, returning existing result with id: {} and attempt: {}",
+                            recentResult.get().getId(), recentResult.get().getAttemptNumber());
+                    return mapToDTO(recentResult.get());
+                }
 
                 // En son deneme numarasını bul
                 Integer lastAttemptNumber = surveyResultRepository.findMaxAttemptNumberBySurveyIdAndUserId(surveyId, userId)
@@ -61,6 +75,14 @@ public class SurveyResultService {
                     userSkillLevels.put(skillId, level);
                 }
 
+                // Attempt numarasını son kez kontrol et
+                Integer currentAttemptNumber = surveyResultRepository.findMaxAttemptNumberBySurveyIdAndUserId(surveyId, userId)
+                        .orElse(0);
+                if (currentAttemptNumber > lastAttemptNumber) {
+                    lastAttemptNumber = currentAttemptNumber;
+                    log.info("Attempt number updated during calculation, using new value: {}", lastAttemptNumber);
+                }
+
                 // SurveyResult nesnesini oluştur
                 SurveyResult surveyResult = new SurveyResult();
                 surveyResult.setUser(user);
@@ -83,6 +105,19 @@ public class SurveyResultService {
                     }
                 });
 
+                // Kaydetmeden önce son bir kontrol daha yap
+                Optional<SurveyResult> finalCheck = surveyResultRepository
+                        .findRecentBySurveyIdAndUserId(
+                                surveyId,
+                                userId,
+                                surveyResult.getCreatedAt().minusSeconds(1)
+                        );
+
+                if (finalCheck.isPresent()) {
+                    log.info("Result was created by another thread during calculation, returning that result");
+                    return mapToDTO(finalCheck.get());
+                }
+
                 // Tek seferde kaydet
                 SurveyResult savedResult = surveyResultRepository.save(surveyResult);
 
@@ -97,6 +132,7 @@ public class SurveyResultService {
             }
         }
     }
+
     private double calculateTotalScore(List<RequiredLevel> requiredLevels, Map<Long, Integer> userSkillLevels) {
         return requiredLevels.stream()
                 .filter(requirement -> userSkillLevels.containsKey(requirement.getSkill().getId()))

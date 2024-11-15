@@ -17,6 +17,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @RestController
 @RequestMapping("/api/surveys")
@@ -38,6 +41,7 @@ public class SurveyResultController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+    private static final Map<String, Lock> calculationLocks = new ConcurrentHashMap<>();
 
     @PostMapping("/{surveyId}/results/{userId}/calculate")
     public ResponseEntity<SurveyResultDTO> calculateResult(
@@ -46,23 +50,18 @@ public class SurveyResultController {
             @RequestParam(required = false) Boolean force,
             HttpServletRequest request) {
 
-        if (force != null && force) {
-            // Her zaman yeni hesaplama yap
-            return ResponseEntity.ok(surveyResultService.calculateAndSaveSurveyResult(surveyId, userId));
-        }
+        String lockKey = String.format("calc_%d_%d", surveyId, userId);
+        Lock calculationLock = calculationLocks.computeIfAbsent(lockKey, k -> new ReentrantLock());
 
-        String requestKey = "calculating_" + surveyId + "_" + userId;
-        Object mutex = request.getSession().getAttribute(requestKey);
-
-        if (mutex != null) {
+        // Kilit alma denemesi - 5 saniye bekler
+        if (!calculationLock.tryLock()) {
+            log.warn("Calculation already in progress for surveyId: {} and userId: {}", surveyId, userId);
             return ResponseEntity
                     .status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(null);
         }
 
         try {
-            request.getSession().setAttribute(requestKey, true);
-
             // Önce anketin tamamlanıp tamamlanmadığını kontrol et
             boolean isCompleted = responseService.isSurveyCompletedByUser(surveyId, userId);
             if (!isCompleted) {
@@ -71,11 +70,18 @@ public class SurveyResultController {
                         .body(null);
             }
 
-            // Var olan son sonucu kontrol et
+            // Eğer force parametresi true ise veya son 5 dakika içinde hesaplanmış sonuç yoksa yeni hesaplama yap
+            if (Boolean.TRUE.equals(force)) {
+                log.info("Force calculation requested for surveyId: {} and userId: {}", surveyId, userId);
+                return ResponseEntity.ok(surveyResultService.calculateAndSaveSurveyResult(surveyId, userId));
+            }
+
+            // Son sonucu kontrol et
             Optional<SurveyResultDTO> existingResult = surveyResultService.findLatestSurveyResult(surveyId, userId);
             if (existingResult.isPresent()) {
                 LocalDateTime fiveMinutesAgo = LocalDateTime.now().minusMinutes(5);
                 if (existingResult.get().getCreatedAt().isAfter(fiveMinutesAgo)) {
+                    log.info("Returning existing result for surveyId: {} and userId: {}", surveyId, userId);
                     return ResponseEntity.ok(existingResult.get());
                 }
             }
@@ -83,13 +89,23 @@ public class SurveyResultController {
             log.info("Calculating new result for surveyId: {} and userId: {}", surveyId, userId);
             SurveyResultDTO result = surveyResultService.calculateAndSaveSurveyResult(surveyId, userId);
             return ResponseEntity.ok(result);
+
         } catch (Exception e) {
             log.error("Error calculating result:", e);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(null);
         } finally {
-            request.getSession().removeAttribute(requestKey);
+            calculationLock.unlock();
+            // Eğer lock çok uzun süre kullanılmamışsa temizle
+            cleanupLocks(lockKey);
+        }
+    }
+
+    private void cleanupLocks(String currentKey) {
+        // 1000'den fazla kilit birikirse en eskilerini temizle
+        if (calculationLocks.size() > 1000) {
+            calculationLocks.remove(currentKey);
         }
     }
 
