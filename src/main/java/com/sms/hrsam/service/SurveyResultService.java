@@ -61,16 +61,13 @@ public class SurveyResultService {
                     userSkillLevels.put(skillId, level);
                 }
 
-                // Yeni SurveyResult oluştur
+                // SurveyResult nesnesini oluştur
                 SurveyResult surveyResult = new SurveyResult();
                 surveyResult.setUser(user);
                 surveyResult.setSurvey(survey);
                 surveyResult.setCreatedAt(LocalDateTime.now());
                 surveyResult.setAttemptNumber(lastAttemptNumber + 1);
-                surveyResult.setProfessionMatches(new ArrayList<>()); // Initialize the list
-
-                // İlk kaydet
-                final SurveyResult finalSurveyResult = surveyResultRepository.save(surveyResult);
+                surveyResult.setProfessionMatches(new ArrayList<>());
 
                 // Profession matches'leri hesapla ve ekle
                 survey.getProfessions().forEach(profession -> {
@@ -82,12 +79,12 @@ public class SurveyResultService {
                         ProfessionMatch professionMatch = new ProfessionMatch();
                         professionMatch.setProfession(profession);
                         professionMatch.setMatchPercentage(matchPercentage);
-                        finalSurveyResult.addProfessionMatch(professionMatch);
+                        surveyResult.addProfessionMatch(professionMatch);
                     }
                 });
 
-                // Son kez kaydet
-                SurveyResult savedResult = surveyResultRepository.save(finalSurveyResult);
+                // Tek seferde kaydet
+                SurveyResult savedResult = surveyResultRepository.save(surveyResult);
 
                 log.info("Saved new survey result with id: {} and attempt: {}",
                         savedResult.getId(), savedResult.getAttemptNumber());

@@ -28,20 +28,21 @@ public class SurveyResult {
             fetch = FetchType.LAZY)
     private List<ProfessionMatch> professionMatches = new ArrayList<>();
 
-    // Helper methods for bidirectional relationship
+    private LocalDateTime createdAt;
+
+    private Integer attemptNumber;
+
+    // Helper methods
     public void addProfessionMatch(ProfessionMatch match) {
         professionMatches.add(match);
         match.setSurveyResult(this);
     }
 
-    public void removeProfessionMatch(ProfessionMatch match) {
-        professionMatches.remove(match);
-        match.setSurveyResult(null);
+    // Yeni eklenen preRemove metodu
+    @PreRemove
+    public void preRemove() {
+        for (ProfessionMatch match : professionMatches) {
+            match.setSurveyResult(null);
+        }
     }
-
-    private LocalDateTime createdAt;
-
-    private Integer attemptNumber;
-
-
 }
