@@ -1,8 +1,10 @@
 package com.sms.hrsam.controller;
 
+import com.sms.hrsam.dto.RoleUpdateRequest;
 import com.sms.hrsam.entity.User;
 import com.sms.hrsam.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@CrossOrigin(origins = "http://localhost:3000")
 public class UserController {
 
     private final UserService userService;
@@ -31,9 +34,29 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    @GetMapping // Tüm kullanıcıları almak için
+    @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
+        try {
+            List<User> users = userService.getAllUsers();
+            System.out.println("Found users: " + users.size()); // Log ekleyelim
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            System.err.println("Error getting users: " + e.getMessage()); // Hata logu
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PutMapping("/{userId}/role")
+    public ResponseEntity<User> updateUserRole(
+            @PathVariable Long userId,
+            @RequestBody RoleUpdateRequest roleRequest) {
+        try {
+            System.out.println("Received role update request for user: " + userId + " with role: " + roleRequest.getRoleName());
+            User updatedUser = userService.updateUserRole(userId, roleRequest.getRoleName());
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            System.err.println("Error updating role: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
     }
 }
