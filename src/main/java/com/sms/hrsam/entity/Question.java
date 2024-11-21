@@ -15,9 +15,11 @@ public class Question {
 
     private String text;
 
-    @ManyToOne
-    @JoinColumn(name = "skill_id")
-    private Skill skill; // Skill sınıfının import edilmesi gerekiyor
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "skill_id", nullable = false,
+            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT,
+                    foreignKeyDefinition = "FOREIGN KEY (skill_id) REFERENCES skill(id) ON DELETE RESTRICT"))
+    private Skill skill;
 
     @ManyToOne
     @JoinColumn(name = "survey_id")

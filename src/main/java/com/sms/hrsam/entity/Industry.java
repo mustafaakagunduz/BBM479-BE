@@ -21,9 +21,9 @@ public class Industry {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @OneToMany(mappedBy = "industry", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "industry")
     private List<Skill> skills;
 
-    @OneToMany(mappedBy = "industry", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "industry")
     private List<Profession> professions;
 }

@@ -1,9 +1,14 @@
 package com.sms.hrsam.entity;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+import java.util.List;
 
 @Entity
 @Data
@@ -23,4 +28,15 @@ public class Skill {
     @ManyToOne
     @JoinColumn(name = "industry_id")
     private Industry industry;
+
+    @OneToMany(mappedBy = "skill")
+    @OnDelete(action = OnDeleteAction.RESTRICT)
+    private List<Question> questions;
+
+    @PreRemove
+    private void checkIfUsedInSurvey() {
+        if (questions.stream().anyMatch(question -> question.getSurvey() != null)) {
+            throw new IllegalStateException("Bu yetenek (skill) bir ankette kullanılıyor ve silinemez.");
+        }
+    }
 }
