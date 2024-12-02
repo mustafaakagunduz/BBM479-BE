@@ -1,3 +1,4 @@
+// Company.java
 package com.sms.hrsam.entity;
 
 import lombok.Data;
@@ -6,19 +7,17 @@ import lombok.AllArgsConstructor;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "role")
+@Table(name = "company")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Role {
+public class Company {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", length = 50, nullable = false)
+    @Column(unique = true)
     private String name;
 
-    public String getNameAsString() {
-        return this.name;
-    }
+    private String description;
 }

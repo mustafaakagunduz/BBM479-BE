@@ -5,11 +5,8 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
-
-
-
-// Entity classes
 @Entity
 @Table(name = "app_user")
 @Data
@@ -28,4 +25,8 @@ public class User {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
     private Role role;
+
+    private boolean emailVerified = false;
+    private String verificationToken;
+    private LocalDateTime verificationTokenExpiry;
 }
