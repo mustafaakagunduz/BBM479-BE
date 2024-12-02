@@ -15,10 +15,11 @@ public class Role {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)  // Bu anotasyonu ekliyoruz
     @Column(name = "name", length = 50, nullable = false)
-    private String name;
+    private UserRole name;
 
     public String getNameAsString() {
-        return this.name;
+        return this.name.name();
     }
 }

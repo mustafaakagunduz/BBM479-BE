@@ -32,4 +32,8 @@ public class AuthController {
     public ResponseEntity<AuthResponse> verifyEmail(@PathVariable String token) {
         return ResponseEntity.ok(authService.verifyEmail(token));
     }
+    @PostMapping("/verify-manual/{userId}")
+    public ResponseEntity<AuthResponse> manualVerify(@PathVariable Long userId) {
+        return ResponseEntity.ok(authService.manualVerify(userId));
+    }
 }
