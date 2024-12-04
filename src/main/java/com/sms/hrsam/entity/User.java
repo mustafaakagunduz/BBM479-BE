@@ -22,6 +22,9 @@ public class User {
     private String username;
     private String password;
 
+    @Column(columnDefinition = "TEXT")
+    private String profileImage;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
     private Role role;
