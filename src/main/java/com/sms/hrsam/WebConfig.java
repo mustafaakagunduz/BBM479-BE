@@ -38,9 +38,9 @@ public class WebConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/companies/**").permitAll()  // Company endpoint'ini ekledik
-                        .anyRequest().permitAll()  // Tüm isteklere izin ver
-
+                        .requestMatchers("/api/companies/**").permitAll()
+                        .requestMatchers("/api/users/upload").permitAll()  // Upload endpoint'i eklendi
+                        .anyRequest().permitAll()
                 )
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable());

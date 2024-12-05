@@ -23,7 +23,7 @@ public class User {
     private String password;
 
     @Column(columnDefinition = "TEXT")
-    private String profileImage;
+    private String profileImage;  // Changed from byte[] to String
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
