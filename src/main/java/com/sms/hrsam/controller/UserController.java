@@ -1,16 +1,20 @@
 package com.sms.hrsam.controller;
 
 import com.sms.hrsam.dto.RoleUpdateRequest;
+import com.sms.hrsam.dto.UserUpdateDTO;
 import com.sms.hrsam.entity.User;
+import com.sms.hrsam.repository.UserRepository;
 import com.sms.hrsam.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -18,10 +22,13 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
 
-
-    public UserController(UserService userService) {
+    public UserController(UserService userService, PasswordEncoder passwordEncoder,UserRepository userRepository) {
         this.userService = userService;
+        this.passwordEncoder = passwordEncoder;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/upload")
@@ -40,6 +47,53 @@ public class UserController {
                     .body("Failed to upload image: " + e.getMessage());
         }
     }
+
+    @PutMapping("/{userId}")
+    public ResponseEntity<?> updateUser(@PathVariable Long userId, @RequestBody UserUpdateDTO updateDTO) {
+        try {
+            User user = userService.getUser(userId);
+
+            // Check if email is already taken
+            if (!user.getEmail().equals(updateDTO.getEmail()) &&
+                    userRepository.existsByEmail(updateDTO.getEmail())) {
+                return ResponseEntity.badRequest().body("Email already in use");
+            }
+
+            // Check if username is already taken
+            if (!user.getUsername().equals(updateDTO.getUsername()) &&
+                    userRepository.existsByUsername(updateDTO.getUsername())) {
+                return ResponseEntity.badRequest().body("Username already in use");
+            }
+
+            user.setName(updateDTO.getName());
+            user.setEmail(updateDTO.getEmail());
+            user.setUsername(updateDTO.getUsername());
+
+            userService.updateUser(user);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @PutMapping("/{userId}/password")
+    public ResponseEntity<?> updatePassword(
+            @PathVariable Long userId,
+            @RequestBody Map<String, String> passwords
+    ) {
+        try {
+            User user = userService.getUser(userId);
+            if (!passwordEncoder.matches(passwords.get("currentPassword"), user.getPassword())) {
+                return ResponseEntity.badRequest().body("Current password is incorrect");
+            }
+            user.setPassword(passwordEncoder.encode(passwords.get("newPassword")));
+            userService.updateUser(user);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to update password");
+        }
+    }
+
+
 
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody User user) {
