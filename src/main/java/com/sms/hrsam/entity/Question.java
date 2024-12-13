@@ -23,7 +23,7 @@ public class Question {
 
     @ManyToOne
     @JoinColumn(name = "survey_id")
-    private Survey survey; // Survey sınıfının import edilmesi gerekiyor
+    private Survey survey;
 
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Option> options = new ArrayList<>();

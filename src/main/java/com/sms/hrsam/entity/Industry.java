@@ -21,9 +21,16 @@ public class Industry {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @OneToMany(mappedBy = "industry")
+    @OneToMany(mappedBy = "industry", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Skill> skills;
 
     @OneToMany(mappedBy = "industry")
     private List<Profession> professions;
+
+    @PreRemove
+    private void checkIfUsedInProfession() {
+        if (!professions.isEmpty()) {
+            throw new IllegalStateException("Bu sektör (industry) bir meslek ile ilişkili olduğu için silinemez.");
+        }
+    }
 }

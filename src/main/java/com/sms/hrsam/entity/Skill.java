@@ -17,7 +17,6 @@ import java.util.List;
 @Builder
 @Table(name = "skill")
 public class Skill {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,8 +32,14 @@ public class Skill {
     @OnDelete(action = OnDeleteAction.RESTRICT)
     private List<Question> questions;
 
+    @ManyToMany(mappedBy = "skills")
+    private List<Profession> professions;
+
     @PreRemove
-    private void checkIfUsedInSurvey() {
+    private void preRemove() {
+        if (!professions.isEmpty()) {
+            throw new IllegalStateException("Bu yetenek (skill) bir meslek ile ilişkili olduğu için silinemez.");
+        }
         if (questions.stream().anyMatch(question -> question.getSurvey() != null)) {
             throw new IllegalStateException("Bu yetenek (skill) bir ankette kullanılıyor ve silinemez.");
         }

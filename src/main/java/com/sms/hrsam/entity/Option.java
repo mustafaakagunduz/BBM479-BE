@@ -21,5 +21,5 @@ public class Option {
 
     @ManyToOne
     @JoinColumn(name = "question_id")
-    private Question question; // Question sınıfının import edilmesi gerekiyor
+    private Question question;
 }
