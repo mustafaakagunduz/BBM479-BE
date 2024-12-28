@@ -1,6 +1,8 @@
 // Company.java
 package com.sms.hrsam.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,14 +10,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-
 @Entity
 @Table(name = "survey_result_analysis")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})  // Bu satırı ekleyin
 public class SurveyResultAnalysis {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,7 +36,7 @@ public class SurveyResultAnalysis {
             joinColumns = @JoinColumn(name = "analysis_id")
     )
     @Column(name = "recommendation")
-    private List<String> recommendations;
+    private List<String> recommendations = new ArrayList<>();  // Boş liste ile başlat
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -41,8 +44,9 @@ public class SurveyResultAnalysis {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "survey_result_id", insertable = false, updatable = false)
+    @JsonIgnore  // Bu annotation'ı ekleyin
     private SurveyResult surveyResult;
 
     @PrePersist

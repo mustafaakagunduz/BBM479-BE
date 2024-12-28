@@ -7,10 +7,12 @@ import com.sms.hrsam.entity.SurveyResultAnalysis;
 import com.sms.hrsam.exception.ResourceNotFoundException;
 import com.sms.hrsam.repository.SurveyResultAnalysisRepository;
 import com.sms.hrsam.repository.SurveyResultRepository;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 @Service
 @Slf4j
@@ -27,6 +29,7 @@ public class SurveyResultAnalysisService {
         this.surveyResultRepository = surveyResultRepository;
     }
 
+    @Transactional
     public SurveyResultAnalysis saveAnalysis(Long surveyResultId, SurveyAnalysisRequest request) {
         // Önce survey result'un var olduğunu kontrol et
         surveyResultRepository.findById(surveyResultId)
@@ -40,7 +43,8 @@ public class SurveyResultAnalysisService {
         // Değerleri güncelle
         analysis.setSurveyResultId(surveyResultId);
         analysis.setAnalysisText(request.getAnalysisText());
-        analysis.setRecommendations(request.getRecommendations());
+        analysis.setRecommendations(request.getRecommendations() != null ?
+                request.getRecommendations() : new ArrayList<>());
 
         return analysisRepository.save(analysis);
     }

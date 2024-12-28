@@ -30,7 +30,43 @@ public class SurveyResultController {
 
     private final SurveyResultService surveyResultService;
     private final ResponseService responseService;
+    private static final Map<String, Object> locks = new ConcurrentHashMap<>();
+    private static final Map<String, LocalDateTime> lastRequestTimes = new ConcurrentHashMap<>();
 
+    @GetMapping("/{surveyId}/results/{userId}/latest")
+    public ResponseEntity<SurveyResultDTO> getLatestResult(
+            @PathVariable Long surveyId,
+            @PathVariable Long userId) {
+        String key = String.format("result_%d_%d", surveyId, userId);
+
+        // Son istek zamanını kontrol et
+        LocalDateTime lastRequestTime = lastRequestTimes.get(key);
+        if (lastRequestTime != null &&
+                lastRequestTime.plusSeconds(1).isAfter(LocalDateTime.now())) {
+            return ResponseEntity
+                    .status(HttpStatus.TOO_MANY_REQUESTS)
+                    .build();
+        }
+
+        // İstek zamanını güncelle
+        lastRequestTimes.put(key, LocalDateTime.now());
+
+        try {
+            log.info("Fetching latest result for surveyId: {} and userId: {}", surveyId, userId);
+            return surveyResultService.findLatestSurveyResult(surveyId, userId)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } finally {
+            // Cache temizliği
+            cleanupCache();
+        }
+    }
+
+    private void cleanupCache() {
+        LocalDateTime threshold = LocalDateTime.now().minusMinutes(5);
+        lastRequestTimes.entrySet().removeIf(entry ->
+                entry.getValue().isBefore(threshold));
+    }
     @GetMapping("/{surveyId}/results/{resultId}")
     public ResponseEntity<SurveyResultDTO> getResultById(
             @PathVariable Long surveyId,
@@ -121,15 +157,6 @@ public class SurveyResultController {
         ));
     }
 
-    @GetMapping("/{surveyId}/results/{userId}/latest")
-    public ResponseEntity<SurveyResultDTO> getLatestResult(
-            @PathVariable Long surveyId,
-            @PathVariable Long userId) {
-        log.info("Fetching latest result for surveyId: {} and userId: {}", surveyId, userId);
-        return surveyResultService.findLatestSurveyResult(surveyId, userId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
 
     @GetMapping("/{surveyId}/results/{userId}/all")
     public ResponseEntity<List<SurveyResultDTO>> getAllResults(

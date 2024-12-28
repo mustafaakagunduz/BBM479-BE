@@ -32,4 +32,6 @@ public class User {
     private boolean emailVerified = false;
     private String verificationToken;
     private LocalDateTime verificationTokenExpiry;
+    private String resetPasswordToken;
+    private LocalDateTime resetPasswordTokenExpiry;
 }

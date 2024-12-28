@@ -8,15 +8,16 @@ import com.sms.hrsam.entity.Role;
 import com.sms.hrsam.entity.UserRole;
 import com.sms.hrsam.repository.UserRepository;
 import com.sms.hrsam.repository.RoleRepository;
+import lombok.extern.slf4j.Slf4j;  // Bu import önemli
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
 @Transactional
+@Slf4j
 public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -32,125 +33,124 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
     }
+    @Transactional
+    public AuthResponse manualVerify(Long userId) {
+        try {
+            User user = userRepository.findById(userId)  // instance'ı kullanıyoruz
+                    .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+
+            user.setEmailVerified(true);
+            user.setVerificationToken(null);
+            user.setVerificationTokenExpiry(null);
+            userRepository.save(user);  // instance'ı kullanıyoruz
+
+            log.info("Manual verification completed for user: {}", user.getEmail());
+
+            return new AuthResponse(
+                    true,
+                    "Email doğrulama başarılı",
+                    user.getRole().getName().toString(),
+                    user.getId()
+            );
+        } catch (Exception e) {
+            log.error("Manual verification error for userId {}: {}", userId, e.getMessage());
+            throw new RuntimeException("Manuel doğrulama sırasında bir hata oluştu: " + e.getMessage());
+        }
+    }
 
     public AuthResponse register(RegisterRequest request) {
-        // Check if email already exists
+        // Email kontrolü
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already registered");
+            log.warn("Email already exists: {}", request.getEmail());
+            throw new RuntimeException("Bu email adresi zaten kayıtlı");
         }
 
-        // Create new user
-        User user = new User();
-        user.setName(request.getFirstName() + " " + request.getLastName());
-        user.setEmail(request.getEmail());
-        user.setUsername(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-
-        // Set default role as USER
-        Role userRole = roleRepository.findByName(UserRole.USER)
-                .orElseThrow(() -> new RuntimeException("Default role not found"));
-        user.setRole(userRole);
-
-        // Generate verification token
-        String verificationToken = UUID.randomUUID().toString();
-        user.setVerificationToken(verificationToken);
-        user.setVerificationTokenExpiry(LocalDateTime.now().plusDays(1));
-        user.setEmailVerified(false);
-
-        userRepository.save(user);
-
-        // Send verification email
         try {
-            emailService.sendVerificationEmail(user.getEmail(), verificationToken);
+            // Yeni kullanıcı oluştur
+            User user = new User();
+            user.setName(request.getFirstName() + " " + request.getLastName());
+            user.setEmail(request.getEmail().toLowerCase().trim());
+            user.setUsername(request.getEmail().toLowerCase().trim());
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+            // Varsayılan rol ata
+            Role userRole = roleRepository.findByName(UserRole.USER)
+                    .orElseThrow(() -> new RuntimeException("Varsayılan rol bulunamadı"));
+            user.setRole(userRole);
+
+            // Doğrulama token'ı oluştur
+            String verificationToken = UUID.randomUUID().toString();
+            user.setVerificationToken(verificationToken);
+            user.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
+            user.setEmailVerified(false);
+
+            User savedUser = userRepository.save(user);
+
+            // Doğrulama emaili gönder
+            try {
+                emailService.sendVerificationEmail(user.getEmail(), verificationToken);
+                log.info("Verification email sent to: {}", user.getEmail());
+            } catch (Exception e) {
+                log.error("Failed to send verification email: {}", e.getMessage());
+            }
+
+            return new AuthResponse(
+                    true,
+                    "Kayıt başarılı. Lütfen email adresinizi doğrulayın.",
+                    user.getRole().getName().toString(),
+                    savedUser.getId()
+            );
+
         } catch (Exception e) {
-            // Log the error but don't prevent registration
-            System.err.println("Failed to send verification email: " + e.getMessage());
+            log.error("Registration error: {}", e.getMessage());
+            throw new RuntimeException("Kayıt işlemi sırasında bir hata oluştu: " + e.getMessage());
         }
-        return new AuthResponse(
-                true,
-                "User registered successfully. Please check your email for verification.",
-                user.getRole().getNameAsString(),
-                user.getId()
-        );
     }
 
     public AuthResponse login(LoginRequest request) {
         try {
-            System.out.println("Login attempt for email: " + request.getEmail());
+            log.info("Login attempt for email: {}", request.getEmail());
 
-            User user = userRepository.findByEmail(request.getEmail())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
-            System.out.println("User details:");
-            System.out.println("- ID: " + user.getId());
-            System.out.println("- Email: " + user.getEmail());
-            System.out.println("- EmailVerified: " + user.isEmailVerified());
-            System.out.println("- Role: " + (user.getRole() != null ? user.getRole().getName() : "null"));
-            System.out.println("- Role ID: " + (user.getRole() != null ? user.getRole().getId() : "null"));
+            String normalizedEmail = request.getEmail().toLowerCase().trim();
+            User user = userRepository.findByEmail(normalizedEmail)
+                    .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
             if (!user.isEmailVerified()) {
-                System.out.println("Email not verified for user: " + user.getEmail());
-                throw new RuntimeException("Please verify your email before logging in.");
+                log.warn("Email not verified for user: {}", user.getEmail());
+                throw new RuntimeException("Lütfen email adresinizi doğrulayın");
             }
 
             if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                System.out.println("Invalid password for user: " + user.getEmail());
-                throw new RuntimeException("Invalid password");
+                log.warn("Invalid password for user: {}", user.getEmail());
+                throw new RuntimeException("Geçersiz şifre");
             }
 
-            // Role null check
             if (user.getRole() == null) {
-                System.err.println("Role is null for user: " + user.getEmail());
-                throw new RuntimeException("User role not found");
+                log.error("Role is null for user: {}", user.getEmail());
+                throw new RuntimeException("Kullanıcı rolü bulunamadı");
             }
 
-            UserRole roleName = user.getRole().getName();
-            System.out.println("Role name enum value: " + roleName);
-            String roleNameString = roleName.name();
-            System.out.println("Role name string: " + roleNameString);
-
-            AuthResponse response = new AuthResponse(
+            return new AuthResponse(
                     true,
-                    "Login successful",
-                    roleNameString,
+                    "Giriş başarılı",
+                    user.getRole().getName().toString(),
                     user.getId()
             );
 
-            System.out.println("Auth response created: " + response);
-            return response;
         } catch (Exception e) {
-            System.err.println("Login error for " + request.getEmail());
-            System.err.println("Error message: " + e.getMessage());
-            System.err.println("Error type: " + e.getClass().getName());
-            e.printStackTrace();
+            log.error("Login error for {}: {}", request.getEmail(), e.getMessage());
             throw e;
         }
     }
 
     @Transactional
-    public AuthResponse manualVerify(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        user.setEmailVerified(true);
-        user.setVerificationToken(null);
-        user.setVerificationTokenExpiry(null);
-        userRepository.save(user);
-
-        return new AuthResponse(
-                true,
-                "Email verified successfully",
-                user.getRole().getNameAsString(),
-                user.getId()
-        );
-    }
-
     public AuthResponse verifyEmail(String token) {
         User user = userRepository.findByVerificationToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid verification token"));
+                .orElseThrow(() -> new RuntimeException("Geçersiz doğrulama kodu"));
 
         if (user.getVerificationTokenExpiry().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Verification token has expired");
+            log.warn("Verification token expired for user: {}", user.getEmail());
+            throw new RuntimeException("Doğrulama kodunun süresi dolmuş");
         }
 
         user.setEmailVerified(true);
@@ -158,11 +158,115 @@ public class AuthService {
         user.setVerificationTokenExpiry(null);
         userRepository.save(user);
 
+        log.info("Email verified successfully for user: {}", user.getEmail());
+
         return new AuthResponse(
                 true,
-                "Email verified successfully",
-                user.getRole().getNameAsString(),
+                "Email doğrulama başarılı",
+                user.getRole().getName().toString(),
                 user.getId()
         );
+    }
+
+    @Transactional
+    public AuthResponse resendVerificationEmail(String email) {
+        try {
+            User user = userRepository.findByEmail(email.toLowerCase().trim())
+                    .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+
+            if (user.isEmailVerified()) {
+                return new AuthResponse(true, "Email zaten doğrulanmış", null, user.getId());
+            }
+
+            // Yeni doğrulama token'ı oluştur
+            String newToken = UUID.randomUUID().toString();
+            user.setVerificationToken(newToken);
+            user.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
+            userRepository.save(user);
+
+            // Yeni doğrulama emaili gönder
+            emailService.sendVerificationEmail(user.getEmail(), newToken);
+
+            return new AuthResponse(
+                    true,
+                    "Doğrulama emaili tekrar gönderildi",
+                    null,
+                    user.getId()
+            );
+        } catch (Exception e) {
+            log.error("Error resending verification email: {}", e.getMessage());
+            throw new RuntimeException("Doğrulama emaili gönderilirken bir hata oluştu");
+        }
+    }
+
+    @Transactional
+    public AuthResponse initPasswordReset(String email) {
+        try {
+            User user = userRepository.findByEmail(email.toLowerCase().trim())
+                    .orElseThrow(() -> new RuntimeException("Bu email adresi ile kayıtlı kullanıcı bulunamadı"));
+
+            // Şifre sıfırlama token'ı oluştur
+            String resetToken = UUID.randomUUID().toString();
+            user.setResetPasswordToken(resetToken);
+            user.setResetPasswordTokenExpiry(LocalDateTime.now().plusHours(1));
+            userRepository.save(user);
+
+            // Şifre sıfırlama emaili gönder
+            try {
+                emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
+                log.info("Password reset email sent to: {}", user.getEmail());
+            } catch (Exception e) {
+                log.error("Failed to send password reset email: {}", e.getMessage());
+                throw new RuntimeException("Şifre sıfırlama emaili gönderilemedi");
+            }
+
+            return new AuthResponse(
+                    true,
+                    "Şifre sıfırlama linki email adresinize gönderildi",
+                    null,
+                    user.getId()
+            );
+
+        } catch (Exception e) {
+            log.error("Password reset initiation failed for email {}: {}", email, e.getMessage());
+            throw new RuntimeException("Şifre sıfırlama işlemi başlatılamadı: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public AuthResponse resetPassword(String token, String newPassword) {
+        try {
+            User user = userRepository.findByResetPasswordToken(token)
+                    .orElseThrow(() -> new RuntimeException("Geçersiz şifre sıfırlama linki"));
+
+            // Token süresini kontrol et
+            if (user.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
+                throw new RuntimeException("Şifre sıfırlama linkinin süresi dolmuş");
+            }
+
+            // Yeni şifreyi doğrula
+            if (newPassword == null || newPassword.trim().length() < 6) {
+                throw new RuntimeException("Şifre en az 6 karakter olmalıdır");
+            }
+
+            // Şifreyi güncelle
+            user.setPassword(passwordEncoder.encode(newPassword));
+            user.setResetPasswordToken(null);
+            user.setResetPasswordTokenExpiry(null);
+            userRepository.save(user);
+
+            log.info("Password reset successful for user: {}", user.getEmail());
+
+            return new AuthResponse(
+                    true,
+                    "Şifreniz başarıyla güncellendi",
+                    user.getRole().getName().toString(),
+                    user.getId()
+            );
+
+        } catch (Exception e) {
+            log.error("Password reset failed for token {}: {}", token, e.getMessage());
+            throw new RuntimeException("Şifre sıfırlama işlemi başarısız: " + e.getMessage());
+        }
     }
 }
