@@ -34,4 +34,16 @@ public class User {
     private LocalDateTime verificationTokenExpiry;
     private String resetPasswordToken;
     private LocalDateTime resetPasswordTokenExpiry;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id")
+    private Company company;
+
+    // getter ve setter
+    public Company getCompany() {
+        return company;
+    }
+
+    public void setCompany(Company company) {
+        this.company = company;
+    }
 }

@@ -44,4 +44,21 @@ public class Skill {
             throw new IllegalStateException("Bu yetenek (skill) bir ankette kullanılıyor ve silinemez.");
         }
     }
+
+    @OneToMany(mappedBy = "skill")
+    private List<RequiredLevel> requiredLevels;
+
+    public int getRequiredLevel() {
+        if (requiredLevels == null || requiredLevels.isEmpty()) {
+            return 0; // Eğer required level tanımlanmamışsa
+        }
+
+        // Tüm required level'ların ortalamasını al
+        return (int) Math.round(
+                requiredLevels.stream()
+                        .mapToInt(RequiredLevel::getRequiredLevel)
+                        .average()
+                        .orElse(0.0)
+        );
+    }
 }

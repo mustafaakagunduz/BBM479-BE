@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import jakarta.persistence.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "company")
 @Data
@@ -18,6 +20,7 @@ public class Company {
 
     @Column(unique = true)
     private String name;
-
+    @OneToMany(mappedBy = "company")
+    private List<User> users;
     private String description;
 }
