@@ -1,6 +1,7 @@
 // Company.java
 package com.sms.hrsam.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -20,7 +21,9 @@ public class Company {
 
     @Column(unique = true)
     private String name;
+    @JsonIgnoreProperties("users") // Bu satırı ekleyin
     @OneToMany(mappedBy = "company")
+
     private List<User> users;
     private String description;
 }

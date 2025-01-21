@@ -1,5 +1,7 @@
 package com.sms.hrsam.service;
 
+import com.sms.hrsam.dto.CompanyDTO;
+import com.sms.hrsam.dto.UserDTO;
 import com.sms.hrsam.entity.Role;
 import com.sms.hrsam.entity.User;
 import com.sms.hrsam.entity.UserRole;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -33,30 +36,42 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    /**
-     * Retrieves a user by their ID. Throws exception if user not found.
-     *
-     * @param userId ID of the user to retrieve.
-     * @return User entity.
-     * @throws ResourceNotFoundException if user is not found.
-     */
-    public User getUser(Long userId) {
+    public User getUserEntity(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
     }
+
+    // DTO döndüren metot (API responses için)
+    public UserDTO getUser(Long userId) {
+        User user = getUserEntity(userId);
+        return convertToDTO(user);
+    }
+
 
     /**
      * Retrieves all users from the database.
      *
      * @return List of all users.
      */
-    public List<User> getAllUsers() {
-        List<User> users = userRepository.findAll();
-        System.out.println("Service found users: " + users.size()); // Log ekleyelim
-        return users;
+    public List<UserDTO> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
-
+    public UserDTO convertToDTO(User user) {
+        return UserDTO.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .role(user.getRole() != null ? user.getRole().getName().toString() : null)
+                .company(user.getCompany() != null ? CompanyDTO.builder()
+                        .id(user.getCompany().getId())
+                        .name(user.getCompany().getName())
+                        .build() : null)
+                .build();
+    }
 
 
     @Transactional
@@ -82,7 +97,7 @@ public class UserService {
 
     @Transactional
     public User updateUserRole(Long userId, String roleName) {
-        User user = getUser(userId);
+        User user = getUserEntity(userId);
 
         if (user.getId() == 1) {
             throw new IllegalArgumentException("Cannot change role of system administrator");

@@ -1,5 +1,6 @@
 package com.sms.hrsam.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -34,6 +35,7 @@ public class User {
     private LocalDateTime verificationTokenExpiry;
     private String resetPasswordToken;
     private LocalDateTime resetPasswordTokenExpiry;
+    @JsonIgnoreProperties("users") // Bu satırı ekleyin
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")
     private Company company;

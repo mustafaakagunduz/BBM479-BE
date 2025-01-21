@@ -3,9 +3,11 @@ package com.sms.hrsam.service;
 import com.sms.hrsam.dto.LoginRequest;
 import com.sms.hrsam.dto.RegisterRequest;
 import com.sms.hrsam.dto.AuthResponse;
+import com.sms.hrsam.entity.Company;
 import com.sms.hrsam.entity.User;
 import com.sms.hrsam.entity.Role;
 import com.sms.hrsam.entity.UserRole;
+import com.sms.hrsam.repository.CompanyRepository;
 import com.sms.hrsam.repository.UserRepository;
 import com.sms.hrsam.repository.RoleRepository;
 import lombok.extern.slf4j.Slf4j;  // Bu import önemli
@@ -23,13 +25,17 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final CompanyRepository companyRepository;  // CompanyRepository'i ekleyin
+
 
     public AuthService(UserRepository userRepository,
                        RoleRepository roleRepository,
+                       CompanyRepository companyRepository,
                        PasswordEncoder passwordEncoder,
                        EmailService emailService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.companyRepository = companyRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
     }
@@ -66,12 +72,17 @@ public class AuthService {
         }
 
         try {
+            // Şirket kontrolü
+            Company company = companyRepository.findById(request.getCompanyId())
+                    .orElseThrow(() -> new RuntimeException("Şirket bulunamadı"));
+
             // Yeni kullanıcı oluştur
             User user = new User();
             user.setName(request.getFirstName() + " " + request.getLastName());
             user.setEmail(request.getEmail().toLowerCase().trim());
             user.setUsername(request.getEmail().toLowerCase().trim());
             user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setCompany(company);  // Şirket ilişkisini kur
 
             // Varsayılan rol ata
             Role userRole = roleRepository.findByName(UserRole.USER)
@@ -82,7 +93,7 @@ public class AuthService {
             String verificationToken = UUID.randomUUID().toString();
             user.setVerificationToken(verificationToken);
             user.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
-            user.setEmailVerified(false);
+            user.setEmailVerified(true);
 
             User savedUser = userRepository.save(user);
 
@@ -107,6 +118,7 @@ public class AuthService {
         }
     }
 
+
     public AuthResponse login(LoginRequest request) {
         try {
             log.info("Login attempt for email: {}", request.getEmail());
@@ -130,42 +142,64 @@ public class AuthService {
                 throw new RuntimeException("Kullanıcı rolü bulunamadı");
             }
 
-            return new AuthResponse(
+            // DTO'ya dönüştürme
+            AuthResponse response = new AuthResponse(
                     true,
                     "Giriş başarılı",
                     user.getRole().getName().toString(),
                     user.getId()
             );
 
+            log.info("Login successful for email: {}", user.getEmail());
+            return response;
+
         } catch (Exception e) {
             log.error("Login error for {}: {}", request.getEmail(), e.getMessage());
             throw e;
         }
     }
-
     @Transactional
     public AuthResponse verifyEmail(String token) {
-        User user = userRepository.findByVerificationToken(token)
-                .orElseThrow(() -> new RuntimeException("Geçersiz doğrulama kodu"));
+        log.info("Starting email verification for token: {}", token);
 
-        if (user.getVerificationTokenExpiry().isBefore(LocalDateTime.now())) {
-            log.warn("Verification token expired for user: {}", user.getEmail());
-            throw new RuntimeException("Doğrulama kodunun süresi dolmuş");
+        try {
+            // Token'ı kontrol et
+            log.debug("Looking up user by verification token");
+            User user = userRepository.findByVerificationToken(token)
+                    .orElseThrow(() -> {
+                        log.error("No user found with token: {}", token);
+                        return new RuntimeException("Geçersiz doğrulama kodu");
+                    });
+
+            log.debug("User found: {}", user.getEmail());
+            log.debug("Current verification status: {}", user.isEmailVerified());
+            log.debug("Token expiry time: {}", user.getVerificationTokenExpiry());
+
+            if (user.getVerificationTokenExpiry().isBefore(LocalDateTime.now())) {
+                log.error("Token expired. Expiry: {}, Current time: {}",
+                        user.getVerificationTokenExpiry(), LocalDateTime.now());
+                throw new RuntimeException("Doğrulama kodunun süresi dolmuş");
+            }
+
+            // Güncelleme işlemi
+            user.setEmailVerified(true);
+            user.setVerificationToken(null);
+            user.setVerificationTokenExpiry(null);
+
+            User savedUser = userRepository.save(user);
+            log.info("User verification completed. Email: {}, Verified: {}",
+                    savedUser.getEmail(), savedUser.isEmailVerified());
+
+            return new AuthResponse(
+                    true,
+                    "Email doğrulama başarılı",
+                    user.getRole().getName().toString(),
+                    user.getId()
+            );
+        } catch (Exception e) {
+            log.error("Verification failed. Error: {}", e.getMessage(), e);
+            throw e;
         }
-
-        user.setEmailVerified(true);
-        user.setVerificationToken(null);
-        user.setVerificationTokenExpiry(null);
-        userRepository.save(user);
-
-        log.info("Email verified successfully for user: {}", user.getEmail());
-
-        return new AuthResponse(
-                true,
-                "Email doğrulama başarılı",
-                user.getRole().getName().toString(),
-                user.getId()
-        );
     }
 
     @Transactional
