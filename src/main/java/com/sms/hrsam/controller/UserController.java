@@ -28,7 +28,7 @@ public class UserController {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
-    private static final Logger log = LoggerFactory.getLogger(CompanyChartsController.class);
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
     public UserController(UserService userService, PasswordEncoder passwordEncoder,UserRepository userRepository) {
         this.userService = userService;
