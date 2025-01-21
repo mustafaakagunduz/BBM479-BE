@@ -116,10 +116,18 @@ public class ProfessionServiceImpl implements ProfessionService {
     @Override
     @Transactional
     public void deleteProfession(Long id) {
-        if (!professionRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Profession not found with id: " + id);
+        Profession profession = professionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Profession not found with id: " + id));
+
+        // Anket ile ilişki kontrolü
+        if (!profession.getSurveys().isEmpty()) {
+            throw new IllegalStateException("Bu meslek bir veya daha fazla anket ile ilişkili olduğu için silinemez.");
         }
-        // RequiredLevel'lar cascade ile silinecek
+
+        // Önce required_level kayıtlarını sil
+        requiredLevelRepository.deleteByProfessionId(id);
+
+        // Sonra profession'ı sil
         professionRepository.deleteById(id);
     }
 

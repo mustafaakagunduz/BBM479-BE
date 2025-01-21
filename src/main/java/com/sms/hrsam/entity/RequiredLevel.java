@@ -14,20 +14,18 @@ import jakarta.validation.constraints.Min;
 @Table(name = "required_level")
 @Data
 @AllArgsConstructor
-
-@NoArgsConstructor  // Parametresiz constructor ekledik
-
+@NoArgsConstructor
 @Builder
 public class RequiredLevel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profession_id")
     private Profession profession;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "skill_id")
     private Skill skill;
 
