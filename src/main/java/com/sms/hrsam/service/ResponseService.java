@@ -8,12 +8,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,26 +48,43 @@ public class ResponseService {
         Survey survey = surveyRepository.findById(responseDTO.getSurveyId())
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
 
-        for (AnswerDTO answerDTO : responseDTO.getAnswers()) {
-            Question question = questionRepository.findById(answerDTO.getQuestionId())
-                    .orElseThrow(() -> new RuntimeException("Question not found"));
+        // Son attempt number'ı bul
+        Integer lastAttemptNumber = responseRepository.findLastAttemptNumber(
+                responseDTO.getUserId(),
+                responseDTO.getSurveyId()
+        ).orElse(0);
 
-            // Find the appropriate option based on the level
-            Option option = question.getOptions().stream()
-                    .filter(opt -> opt.getLevel().equals(answerDTO.getSelectedLevel()))
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Option not found for level: " + answerDTO.getSelectedLevel()));
+        // Yeni attempt number
+        Integer currentAttemptNumber = lastAttemptNumber + 1;
 
-            Response response = new Response();
-            response.setUser(user);
-            response.setSurvey(survey);
-            response.setQuestion(question);
-            response.setOption(option);
-            response.setEnteredLevel(answerDTO.getSelectedLevel());
+        LocalDateTime now = LocalDateTime.now();
 
-            responseRepository.save(response);
-        }
+        // Tüm yanıtları tek seferde kaydet
+        List<Response> responses = responseDTO.getAnswers().stream()
+                .map(answerDTO -> {
+                    Question question = questionRepository.findById(answerDTO.getQuestionId())
+                            .orElseThrow(() -> new RuntimeException("Question not found"));
+
+                    Option option = question.getOptions().stream()
+                            .filter(opt -> opt.getLevel().equals(answerDTO.getSelectedLevel()))
+                            .findFirst()
+                            .orElseThrow(() -> new RuntimeException("Option not found for level: " + answerDTO.getSelectedLevel()));
+
+                    Response response = new Response();
+                    response.setUser(user);
+                    response.setSurvey(survey);
+                    response.setQuestion(question);
+                    response.setOption(option);
+                    response.setEnteredLevel(answerDTO.getSelectedLevel());
+                    response.setCreatedAt(now);
+                    response.setAttemptNumber(currentAttemptNumber); // Her yanıt için aynı attempt number
+                    return response;
+                })
+                .collect(Collectors.toList());
+
+        responseRepository.saveAll(responses);
     }
+
     public boolean isSurveyCompletedByUser(Long surveyId, Long userId) {
         try {
             // Anketteki soruları al
