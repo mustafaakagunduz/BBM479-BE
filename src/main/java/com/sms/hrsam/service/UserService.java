@@ -65,6 +65,7 @@ public class UserService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .username(user.getUsername())
+                .profileImage(user.getProfileImage())  // Add this line
                 .role(user.getRole() != null ? user.getRole().getName().toString() : null)
                 .company(user.getCompany() != null ? CompanyDTO.builder()
                         .id(user.getCompany().getId())

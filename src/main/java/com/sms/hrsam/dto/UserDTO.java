@@ -15,5 +15,6 @@ public class UserDTO {
     private String email;
     private String username;
     private String role;
+    private String profileImage;  // Add this field
     private CompanyDTO company;
 }
