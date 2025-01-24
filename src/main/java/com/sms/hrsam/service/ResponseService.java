@@ -95,7 +95,6 @@ public class ResponseService {
         response.setOption(option);
         response.setEnteredLevel(answerDTO.getSelectedLevel());
         response.setCreatedAt(now);
-        response.setAttemptNumber(currentAttemptNumber);
         return response;
     }
 

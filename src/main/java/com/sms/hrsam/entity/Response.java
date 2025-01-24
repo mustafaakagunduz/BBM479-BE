@@ -41,11 +41,11 @@ public class Response {
     @Max(5)
     private Integer enteredLevel;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now(); // Default value
 
-    @Column(name = "attempt_number", nullable = false)
-    private Integer attemptNumber;
+    @Column(name = "attempt_number")
+    private Integer attemptNumber = 1;
 
     @PrePersist
     protected void onCreate() {
