@@ -26,8 +26,11 @@ public class ResponseController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> createResponses(@RequestBody SurveyResponseCreateDTO responseDTO) {
-        responseService.createResponses(responseDTO);
+    public ResponseEntity<Void> createResponses(
+            @RequestBody SurveyResponseCreateDTO responseDTO,
+            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey)
+    {
+        responseService.createResponses(responseDTO, idempotencyKey);
         return ResponseEntity.ok().build();
     }
 

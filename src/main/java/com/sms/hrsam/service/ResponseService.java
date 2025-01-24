@@ -4,6 +4,7 @@ import com.sms.hrsam.dto.AnswerDTO;
 import com.sms.hrsam.dto.SurveyResponseCreateDTO;
 import com.sms.hrsam.entity.*;
 import com.sms.hrsam.repository.*;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,49 +41,62 @@ public class ResponseService {
         this.optionRepository = optionRepository;
     }
 
+    private final ConcurrentHashMap<String, Boolean> processedRequests = new ConcurrentHashMap<>();
+
+    public boolean isProcessed(String idempotencyKey) {
+        return idempotencyKey != null && processedRequests.containsKey(idempotencyKey);
+    }
+
     @Transactional
-    public void createResponses(SurveyResponseCreateDTO responseDTO) {
+    public void createResponses(SurveyResponseCreateDTO responseDTO, String idempotencyKey) {
+        if (isProcessed(idempotencyKey)) {
+            return;
+        }
+
         User user = userRepository.findById(responseDTO.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Survey survey = surveyRepository.findById(responseDTO.getSurveyId())
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
 
-        // Son attempt number'ı bul
         Integer lastAttemptNumber = responseRepository.findLastAttemptNumber(
                 responseDTO.getUserId(),
                 responseDTO.getSurveyId()
         ).orElse(0);
 
-        // Yeni attempt number
         Integer currentAttemptNumber = lastAttemptNumber + 1;
-
         LocalDateTime now = LocalDateTime.now();
 
-        // Tüm yanıtları tek seferde kaydet
         List<Response> responses = responseDTO.getAnswers().stream()
-                .map(answerDTO -> {
-                    Question question = questionRepository.findById(answerDTO.getQuestionId())
-                            .orElseThrow(() -> new RuntimeException("Question not found"));
-
-                    Option option = question.getOptions().stream()
-                            .filter(opt -> opt.getLevel().equals(answerDTO.getSelectedLevel()))
-                            .findFirst()
-                            .orElseThrow(() -> new RuntimeException("Option not found for level: " + answerDTO.getSelectedLevel()));
-
-                    Response response = new Response();
-                    response.setUser(user);
-                    response.setSurvey(survey);
-                    response.setQuestion(question);
-                    response.setOption(option);
-                    response.setEnteredLevel(answerDTO.getSelectedLevel());
-                    response.setCreatedAt(now);
-                    response.setAttemptNumber(currentAttemptNumber); // Her yanıt için aynı attempt number
-                    return response;
-                })
+                .map(answerDTO -> createResponse(user, survey, answerDTO, now, currentAttemptNumber))
                 .collect(Collectors.toList());
 
         responseRepository.saveAll(responses);
+
+        if (idempotencyKey != null) {
+            processedRequests.put(idempotencyKey, true);
+        }
+    }
+
+    private Response createResponse(User user, Survey survey, AnswerDTO answerDTO,
+                                    LocalDateTime now, Integer currentAttemptNumber) {
+        Question question = questionRepository.findById(answerDTO.getQuestionId())
+                .orElseThrow(() -> new RuntimeException("Question not found"));
+
+        Option option = question.getOptions().stream()
+                .filter(opt -> opt.getLevel().equals(answerDTO.getSelectedLevel()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Option not found"));
+
+        Response response = new Response();
+        response.setUser(user);
+        response.setSurvey(survey);
+        response.setQuestion(question);
+        response.setOption(option);
+        response.setEnteredLevel(answerDTO.getSelectedLevel());
+        response.setCreatedAt(now);
+        response.setAttemptNumber(currentAttemptNumber);
+        return response;
     }
 
     public boolean isSurveyCompletedByUser(Long surveyId, Long userId) {
