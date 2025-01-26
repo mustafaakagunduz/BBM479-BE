@@ -47,7 +47,7 @@ public class ResponseService {
         return idempotencyKey != null && processedRequests.containsKey(idempotencyKey);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public void createResponses(SurveyResponseCreateDTO responseDTO, String idempotencyKey) {
         if (isProcessed(idempotencyKey)) {
             return;
@@ -59,12 +59,11 @@ public class ResponseService {
         Survey survey = surveyRepository.findById(responseDTO.getSurveyId())
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
 
-        Integer lastAttemptNumber = responseRepository.findLastAttemptNumber(
+        Integer currentAttemptNumber = responseRepository.incrementAndGetAttemptNumber(
                 responseDTO.getUserId(),
                 responseDTO.getSurveyId()
-        ).orElse(0);
+        );
 
-        Integer currentAttemptNumber = lastAttemptNumber + 1;
         LocalDateTime now = LocalDateTime.now();
 
         List<Response> responses = responseDTO.getAnswers().stream()
@@ -77,7 +76,6 @@ public class ResponseService {
             processedRequests.put(idempotencyKey, true);
         }
     }
-
     private Response createResponse(User user, Survey survey, AnswerDTO answerDTO,
                                     LocalDateTime now, Integer currentAttemptNumber) {
         Question question = questionRepository.findById(answerDTO.getQuestionId())
@@ -95,6 +93,7 @@ public class ResponseService {
         response.setOption(option);
         response.setEnteredLevel(answerDTO.getSelectedLevel());
         response.setCreatedAt(now);
+        response.setAttemptNumber(currentAttemptNumber);  // Burayı ekleyin
         return response;
     }
 

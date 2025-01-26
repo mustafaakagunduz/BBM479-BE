@@ -28,4 +28,9 @@ public interface ResponseRepository extends JpaRepository<Response, Long> {
     Optional<Integer> findLastAttemptNumber(@Param("userId") Long userId, @Param("surveyId") Long surveyId);
 
     boolean existsByUserIdAndSurveyIdAndCreatedAtAfter(Long userId, Long surveyId, LocalDateTime localDateTime);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT COALESCE(MAX(r.attemptNumber), 0) + 1 FROM Response r WHERE r.user.id = :userId AND r.survey.id = :surveyId")
+    Integer incrementAndGetAttemptNumber(@Param("userId") Long userId, @Param("surveyId") Long surveyId);
+
 }
