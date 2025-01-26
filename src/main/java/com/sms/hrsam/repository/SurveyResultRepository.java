@@ -50,4 +50,20 @@ public interface SurveyResultRepository extends JpaRepository<SurveyResult, Long
 
     List<SurveyResult> findAllByUserIdOrderByCreatedAtDesc(Long userId);
 
+    @Query("SELECT DISTINCT sr FROM SurveyResult sr " +
+            "JOIN FETCH sr.survey s " +
+            "JOIN FETCH sr.questionResults qr " +
+            "JOIN FETCH qr.question q " +
+            "JOIN FETCH q.skill " +
+            "WHERE sr.user.company.id = :companyId " +
+            "AND sr.survey.id = :surveyId")
+    List<SurveyResult> findAllByCompanyIdAndSurveyId(
+            @Param("companyId") Long companyId,
+            @Param("surveyId") Long surveyId
+    );
+
+    @Query("SELECT sr FROM SurveyResult sr " +
+            "WHERE sr.user.company.id = :companyId")
+    List<SurveyResult> findAllByCompanyId(@Param("companyId") Long companyId);
+
 }

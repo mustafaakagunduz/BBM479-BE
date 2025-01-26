@@ -38,6 +38,9 @@ public class SurveyResult {
         match.setSurveyResult(this);
     }
 
+    @OneToMany(mappedBy = "surveyResult", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QuestionResult> questionResults = new ArrayList<>();
+
     // Yeni eklenen preRemove metodu
     @PreRemove
     public void preRemove() {
