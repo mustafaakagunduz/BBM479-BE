@@ -1,6 +1,7 @@
 package com.sms.hrsam.service;
 
 import com.sms.hrsam.dto.CompanySkillAnalysisDTO;
+import com.sms.hrsam.dto.SkillDetailDTO;
 import com.sms.hrsam.entity.*;
 import com.sms.hrsam.exception.ResourceNotFoundException;
 import com.sms.hrsam.repository.CompanyRepository;
@@ -34,6 +35,21 @@ public class CompanyAnalysisService {
         this.companyRepository = companyRepository;
         this.surveyRepository = surveyRepository;
         this.responseRepository = responseRepository;
+    }
+
+    public List<SkillDetailDTO> getSkillDetails(Long companyId, Long surveyId, String skillName) {
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
+
+        List<Response> responses = responseRepository.findByCompanyIdAndSurveyIdAndSkillName(
+                companyId, surveyId, skillName);
+
+        return responses.stream()
+                .map(response -> new SkillDetailDTO(
+                        response.getUser().getId(),
+                        response.getUser().getName(),
+                        response.getEnteredLevel()))
+                .collect(Collectors.toList());
     }
 
     public CompanySkillAnalysisDTO analyzeCompanySkills(Long companyId, Long surveyId) {

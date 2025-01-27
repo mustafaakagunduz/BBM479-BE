@@ -1,10 +1,13 @@
 package com.sms.hrsam.controller;
 
 import com.sms.hrsam.dto.CompanySkillAnalysisDTO;
+import com.sms.hrsam.dto.SkillDetailDTO;
 import com.sms.hrsam.service.CompanyAnalysisService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/analysis")
@@ -15,6 +18,14 @@ public class CompanyAnalysisController {
     @Autowired
     public CompanyAnalysisController(CompanyAnalysisService companyAnalysisService) {
         this.companyAnalysisService = companyAnalysisService;
+    }
+
+    @GetMapping("/company/{companyId}/survey/{surveyId}/skill/{skillName}/details")
+    public ResponseEntity<List<SkillDetailDTO>> getSkillDetails(
+            @PathVariable Long companyId,
+            @PathVariable Long surveyId,
+            @PathVariable String skillName) {
+        return ResponseEntity.ok(companyAnalysisService.getSkillDetails(companyId, surveyId, skillName));
     }
 
     @GetMapping("/company/{companyId}/survey/{surveyId}/skills")
