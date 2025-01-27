@@ -3,6 +3,7 @@ package com.sms.hrsam.repository;
 import com.sms.hrsam.entity.Response;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
@@ -23,6 +24,9 @@ public interface ResponseRepository extends JpaRepository<Response, Long> {
     default long countBySurveyIdAndUserId(Long surveyId, Long userId) {
         return findBySurveyIdAndUserId(surveyId, userId).size();
     }
+        @Modifying
+        @Query("DELETE FROM Response r WHERE r.survey.id = :surveyId")
+        void deleteBySurveyId(@Param("surveyId") Long surveyId);
 
     @Query("SELECT MAX(r.attemptNumber) FROM Response r WHERE r.user.id = :userId AND r.survey.id = :surveyId")
     Optional<Integer> findLastAttemptNumber(@Param("userId") Long userId, @Param("surveyId") Long surveyId);

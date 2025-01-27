@@ -3,6 +3,7 @@ package com.sms.hrsam.controller;
 import com.sms.hrsam.dto.*;
 import com.sms.hrsam.service.SurveyService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -56,7 +57,11 @@ public class SurveyController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSurvey(@PathVariable Long id) {
-        surveyService.deleteSurvey(id);
-        return ResponseEntity.ok().build();
+        try {
+            surveyService.deleteSurvey(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

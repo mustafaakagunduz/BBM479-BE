@@ -3,7 +3,9 @@ package com.sms.hrsam.service;
 import com.sms.hrsam.dto.*;
 import com.sms.hrsam.entity.*;
 import com.sms.hrsam.repository.*;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,6 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 @Service
 @RequiredArgsConstructor
@@ -23,9 +30,13 @@ public class SurveyService {
     private final IndustryRepository industryRepository;
     private final SkillRepository skillRepository;
     private final ProfessionRepository professionRepository;
+    private  final SurveyResultRepository surveyResultRepository ;
+    private final SurveyResultAnalysisRepository surveyResultAnalysisRepository;
+    private static final Logger log = LoggerFactory.getLogger(SurveyService.class);
 
     @Transactional
     public SurveyDTO createSurvey(SurveyDTO surveyDTO) {
+
         // Get user
         User user = userRepository.findById(surveyDTO.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -207,10 +218,63 @@ public class SurveyService {
         Survey savedSurvey = surveyRepository.save(survey);
         return mapToDTO(savedSurvey);
     }
-
+    @Autowired
+    private EntityManager entityManager;
     @Transactional
     public void deleteSurvey(Long id) {
-        surveyRepository.deleteById(id);
+        try {
+            Survey survey = surveyRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Survey not found"));
+
+            // 1. First find all survey results
+            List<SurveyResult> results = surveyResultRepository.findAllBySurveyId(id);
+
+            for (SurveyResult result : results) {
+                // 2. First delete survey result analysis
+                surveyResultAnalysisRepository.deleteBySurveyResultId(result.getId());
+                entityManager.flush();
+
+                // 3. Delete all ProfessionMatches
+                result.getProfessionMatches().forEach(match -> {
+                    entityManager.remove(match);
+                });
+                entityManager.flush();
+
+                // 4. Clear and delete QuestionResults
+                result.getQuestionResults().forEach(qr -> {
+                    entityManager.remove(qr);
+                });
+                entityManager.flush();
+
+                // 5. Now remove the SurveyResult itself
+                entityManager.remove(result);
+            }
+            entityManager.flush();
+
+            // 6. Delete responses
+            responseRepository.deleteBySurveyId(id);
+            entityManager.flush();
+
+            // 7. Clear and delete questions with their options
+            survey.getQuestions().forEach(question -> {
+                question.getOptions().forEach(option -> {
+                    entityManager.remove(option);
+                });
+                entityManager.remove(question);
+            });
+            entityManager.flush();
+
+            // 8. Clear other associations
+            survey.getProfessions().clear();
+
+            // 9. Finally delete the survey
+            surveyRepository.delete(survey);
+
+            log.info("Survey with id {} successfully deleted", id);
+        } catch (Exception e) {
+            log.error("Error deleting survey: {}", e.getMessage());
+            throw new RuntimeException("Failed to delete survey: " + e.getMessage());
+        }
     }
 
     private SurveyDTO mapToDTO(Survey survey) {

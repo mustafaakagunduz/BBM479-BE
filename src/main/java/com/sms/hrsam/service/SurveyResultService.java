@@ -6,6 +6,8 @@ import com.sms.hrsam.entity.*;
 import com.sms.hrsam.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,13 +17,16 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
+@Transactional
+
 public class SurveyResultService {
     private final SurveyResultRepository surveyResultRepository;
     private final SurveyRepository surveyRepository;
     private final UserRepository userRepository;
     private final ResponseRepository responseRepository;
     private final RequiredLevelRepository requiredLevelRepository;
+    private final ProfessionMatchRepository professionMatchRepository;
+    private static final Logger log = LoggerFactory.getLogger(SurveyResultService.class);
 
     private static final Object lock = new Object();
 
@@ -213,5 +218,36 @@ public class SurveyResultService {
                     surveyResultRepository.delete(result);
                     log.info("Successfully deleted result with id: {}", resultId);
                 });
+    }
+    @Transactional
+    public void deleteSurveyResults(List<Long> surveyResultIds) {
+        try {
+            for (Long resultId : surveyResultIds) {
+                SurveyResult result = surveyResultRepository.findById(resultId)
+                        .orElseThrow(() -> new RuntimeException("Survey result not found with id: " + resultId));
+
+                // 1. First clear profession matches
+                result.getProfessionMatches().forEach(match -> {
+                    match.setSurveyResult(null);
+                    match.setProfession(null);
+                });
+                professionMatchRepository.deleteAll(result.getProfessionMatches());
+                result.getProfessionMatches().clear();
+
+                // 2. Clear question results
+                result.getQuestionResults().clear();
+
+                // 3. Save the cleared result
+                surveyResultRepository.save(result);
+
+                // 4. Now delete the survey result
+                surveyResultRepository.delete(result);
+            }
+
+            log.info("Successfully deleted {} survey results", surveyResultIds.size());
+        } catch (Exception e) {
+            log.error("Error deleting survey results: {}", e.getMessage());
+            throw new RuntimeException("Failed to delete survey results: " + e.getMessage());
+        }
     }
 }
