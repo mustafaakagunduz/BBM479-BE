@@ -29,6 +29,17 @@ public interface ResponseRepository extends JpaRepository<Response, Long> {
 
     boolean existsByUserIdAndSurveyIdAndCreatedAtAfter(Long userId, Long surveyId, LocalDateTime localDateTime);
 
+    @Query("SELECT r FROM Response r " +
+            "JOIN r.question q " +
+            "JOIN q.skill s " +
+            "WHERE r.user.company.id = :companyId " +
+            "AND r.survey.id = :surveyId " +
+            "AND s.name = :skillName")
+    List<Response> findByCompanyIdAndSurveyIdAndSkillName(
+            @Param("companyId") Long companyId,
+            @Param("surveyId") Long surveyId,
+            @Param("skillName") String skillName);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT COALESCE(MAX(r.attemptNumber), 0) + 1 FROM Response r WHERE r.user.id = :userId AND r.survey.id = :surveyId")
     Integer incrementAndGetAttemptNumber(@Param("userId") Long userId, @Param("surveyId") Long surveyId);
