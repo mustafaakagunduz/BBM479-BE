@@ -144,14 +144,18 @@ public class SurveyResultService {
                 .mapToDouble(requirement -> {
                     Integer userLevel = userSkillLevels.get(requirement.getSkill().getId());
                     Integer requiredLevel = requirement.getRequiredLevel();
-                    return Math.min(userLevel, requiredLevel) / (double) requiredLevel;
+                    // Her bir skill için yüzdelik hesaplama
+                    return (userLevel.doubleValue() / requiredLevel.doubleValue()) * 100;
                 })
                 .sum();
     }
 
     private double calculateMatchPercentage(double totalScore, int totalRequirements) {
-        double matchPercentage = (totalScore / totalRequirements) * 100;
+        // totalScore zaten yüzdelik olarak geldiği için sadece ortalamasını alıyoruz
+        double matchPercentage = totalScore / totalRequirements;
+        // 0-100 aralığında olduğundan emin oluyoruz
         matchPercentage = Math.min(100, Math.max(0, matchPercentage));
+        // İki ondalık basamağa yuvarlama
         return Math.round(matchPercentage * 100.0) / 100.0;
     }
 
@@ -241,6 +245,7 @@ public class SurveyResultService {
                 surveyResultRepository.save(result);
 
                 // 4. Now delete the survey result
+                // 4. Now delete the survey resultcalc
                 surveyResultRepository.delete(result);
             }
 
