@@ -11,8 +11,8 @@ import java.util.List;
 @Table(name = "survey_result",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        columnNames = {"user_id", "survey_id", "attempt_number"},
-                        name = "uk_survey_result_user_survey_attempt"
+                        columnNames = {"user_id", "survey_id"},
+                        name = "uk_survey_result_user_survey"
                 )
         })
 public class SurveyResult {
@@ -20,7 +20,7 @@ public class SurveyResult {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)  // OneToOne yerine ManyToOne kullanıyoruz
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
@@ -35,8 +35,10 @@ public class SurveyResult {
     private List<ProfessionMatch> professionMatches = new ArrayList<>();
 
     private LocalDateTime createdAt;
-
     private Integer attemptNumber;
+
+    @OneToMany(mappedBy = "surveyResult", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QuestionResult> questionResults = new ArrayList<>();
 
     // Helper methods
     public void addProfessionMatch(ProfessionMatch match) {
@@ -44,10 +46,6 @@ public class SurveyResult {
         match.setSurveyResult(this);
     }
 
-    @OneToMany(mappedBy = "surveyResult", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<QuestionResult> questionResults = new ArrayList<>();
-
-    // Yeni eklenen preRemove metodu
     @PreRemove
     public void preRemove() {
         for (ProfessionMatch match : professionMatches) {
