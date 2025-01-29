@@ -13,7 +13,8 @@ public class Question {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String text;
+    @Column(columnDefinition = "TEXT")  // String yerine TEXT kullanıyoruz
+    private String text;                // HTML içeriği için daha büyük alan
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "skill_id", nullable = false,
