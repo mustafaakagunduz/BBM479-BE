@@ -14,17 +14,21 @@ import java.util.Optional;
 @Repository
 public interface SurveyResultRepository extends JpaRepository<SurveyResult, Long> {
 
-    // Son oluşturulan sonuçları bulmak için
-    @Query("SELECT sr FROM SurveyResult sr " +
-            "WHERE sr.survey.id = :surveyId " +
-            "AND sr.user.id = :userId " +
-            "AND sr.createdAt > :timestamp " +
-            "ORDER BY sr.createdAt DESC")
-    Optional<SurveyResult> findRecentBySurveyIdAndUserId(
-            @Param("surveyId") Long surveyId,
-            @Param("userId") Long userId,
-            @Param("timestamp") LocalDateTime timestamp
-    );
+
+        @Query(value = "SELECT sr FROM SurveyResult sr " +
+                "WHERE sr.survey.id = :surveyId " +
+                "AND sr.user.id = :userId " +
+                "AND sr.createdAt > :timestamp " +
+                "AND NOT EXISTS (SELECT 1 FROM SurveyResult sr2 " +
+                "               WHERE sr2.survey.id = sr.survey.id " +
+                "               AND sr2.user.id = sr.user.id " +
+                "               AND sr2.createdAt > sr.createdAt)")
+        Optional<SurveyResult> findRecentBySurveyIdAndUserId(
+                @Param("surveyId") Long surveyId,
+                @Param("userId") Long userId,
+                @Param("timestamp") LocalDateTime timestamp
+        );
+
 
     // En son attempt numarasına göre sıralı sonuçları bulmak için
     Optional<SurveyResult> findFirstBySurveyIdAndUserIdOrderByAttemptNumberDesc(

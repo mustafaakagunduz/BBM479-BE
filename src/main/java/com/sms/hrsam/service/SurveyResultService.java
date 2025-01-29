@@ -5,14 +5,15 @@ import com.sms.hrsam.dto.ProfessionMatchDTO;
 import com.sms.hrsam.entity.*;
 import com.sms.hrsam.repository.*;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,7 +28,7 @@ public class SurveyResultService {
     private final RequiredLevelRepository requiredLevelRepository;
     private final ProfessionMatchRepository professionMatchRepository;
     private static final Logger log = LoggerFactory.getLogger(SurveyResultService.class);
-
+    private static final Map<String, Lock> calculationLocks = new ConcurrentHashMap<>();
     private static final Object lock = new Object();
 
     public Optional<SurveyResultDTO> findSurveyResultById(Long resultId) {
@@ -38,16 +39,24 @@ public class SurveyResultService {
 
     @Transactional
     public SurveyResultDTO calculateAndSaveSurveyResult(Long surveyId, Long userId) {
-        synchronized (String.format("calc_%d_%d", surveyId, userId).intern()) {
-            try {
+        String lockKey = String.format("calc_%d_%d", surveyId, userId);
+        Lock calculationLock = calculationLocks.computeIfAbsent(lockKey, k -> new ReentrantLock());
+
+        if (!calculationLock.tryLock()) {
+            log.warn("Calculation already in progress for surveyId: {} and userId: {}", surveyId, userId);
+            throw new RuntimeException("Another calculation is in progress");
+        }
+
+        try {
+            synchronized (lockKey.intern()) {
                 log.info("Starting calculation for surveyId: {} and userId: {}", surveyId, userId);
 
-                // Son 1 saniye içinde oluşturulmuş sonuç var mı kontrol et
+                // Son 2 saniye içinde oluşturulmuş sonuç var mı kontrol et
                 Optional<SurveyResult> recentResult = surveyResultRepository
                         .findRecentBySurveyIdAndUserId(
                                 surveyId,
                                 userId,
-                                LocalDateTime.now().minusSeconds(1)
+                                LocalDateTime.now().minusSeconds(2)
                         );
 
                 if (recentResult.isPresent()) {
@@ -56,33 +65,37 @@ public class SurveyResultService {
                     return mapToDTO(recentResult.get());
                 }
 
-                // En son deneme numarasını bul
-                Integer lastAttemptNumber = surveyResultRepository.findMaxAttemptNumberBySurveyIdAndUserId(surveyId, userId)
+                // Anketin tamamlanıp tamamlanmadığını kontrol et
+                List<Response> userResponses = responseRepository.findBySurveyIdAndUserId(surveyId, userId);
+                if (userResponses.isEmpty()) {
+                    throw new RuntimeException("No responses found for this survey");
+                }
+
+                // En son attempt numarasını al
+                Integer lastAttemptNumber = surveyResultRepository
+                        .findMaxAttemptNumberBySurveyIdAndUserId(surveyId, userId)
                         .orElse(0);
 
+                // Survey ve User varlığını kontrol et
                 Survey survey = surveyRepository.findById(surveyId)
                         .orElseThrow(() -> new RuntimeException("Survey not found"));
 
                 User user = userRepository.findById(userId)
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
-                // En son responses'ları al
-                List<Response> userResponses = responseRepository.findBySurveyIdAndUserId(surveyId, userId);
-                if (userResponses.isEmpty()) {
-                    throw new RuntimeException("No responses found for this survey");
-                }
+                // Skill levels'ları hazırla
+                Map<Long, Integer> userSkillLevels = userResponses.stream()
+                        .collect(Collectors.toMap(
+                                response -> response.getQuestion().getSkill().getId(),
+                                Response::getEnteredLevel,
+                                (existing, replacement) -> replacement
+                        ));
 
-                // Skill levels'ları maple
-                Map<Long, Integer> userSkillLevels = new HashMap<>();
-                for (Response response : userResponses) {
-                    Long skillId = response.getQuestion().getSkill().getId();
-                    Integer level = response.getEnteredLevel();
-                    userSkillLevels.put(skillId, level);
-                }
-
-                // Attempt numarasını son kez kontrol et
-                Integer currentAttemptNumber = surveyResultRepository.findMaxAttemptNumberBySurveyIdAndUserId(surveyId, userId)
+                // Son bir kez daha attempt numarasını kontrol et
+                Integer currentAttemptNumber = surveyResultRepository
+                        .findMaxAttemptNumberBySurveyIdAndUserId(surveyId, userId)
                         .orElse(0);
+
                 if (currentAttemptNumber > lastAttemptNumber) {
                     lastAttemptNumber = currentAttemptNumber;
                     log.info("Attempt number updated during calculation, using new value: {}", lastAttemptNumber);
@@ -96,9 +109,11 @@ public class SurveyResultService {
                 surveyResult.setAttemptNumber(lastAttemptNumber + 1);
                 surveyResult.setProfessionMatches(new ArrayList<>());
 
-                // Profession matches'leri hesapla ve ekle
+                // Profession matches'leri hesapla
                 survey.getProfessions().forEach(profession -> {
-                    List<RequiredLevel> requiredLevels = requiredLevelRepository.findByProfessionId(profession.getId());
+                    List<RequiredLevel> requiredLevels = requiredLevelRepository
+                            .findByProfessionId(profession.getId());
+
                     if (!requiredLevels.isEmpty()) {
                         double totalScore = calculateTotalScore(requiredLevels, userSkillLevels);
                         double matchPercentage = calculateMatchPercentage(totalScore, requiredLevels.size());
@@ -110,7 +125,7 @@ public class SurveyResultService {
                     }
                 });
 
-                // Kaydetmeden önce son bir kontrol daha yap
+                // Son bir kez daha kontrol et
                 Optional<SurveyResult> finalCheck = surveyResultRepository
                         .findRecentBySurveyIdAndUserId(
                                 surveyId,
@@ -123,18 +138,27 @@ public class SurveyResultService {
                     return mapToDTO(finalCheck.get());
                 }
 
-                // Tek seferde kaydet
-                SurveyResult savedResult = surveyResultRepository.save(surveyResult);
-
-                log.info("Saved new survey result with id: {} and attempt: {}",
-                        savedResult.getId(), savedResult.getAttemptNumber());
-
-                return mapToDTO(savedResult);
-
-            } catch (Exception e) {
-                log.error("Error calculating survey result:", e);
-                throw new RuntimeException("Failed to calculate survey result: " + e.getMessage());
+                try {
+                    // Transactional olarak kaydet
+                    SurveyResult savedResult = surveyResultRepository.save(surveyResult);
+                    log.info("Successfully saved new survey result with id: {} and attempt: {}",
+                            savedResult.getId(), savedResult.getAttemptNumber());
+                    return mapToDTO(savedResult);
+                } catch (Exception e) {
+                    log.error("Error saving survey result: ", e);
+                    throw new RuntimeException("Failed to save survey result: " + e.getMessage());
+                }
             }
+        } finally {
+            calculationLock.unlock();
+            // Eski kilitleri temizle
+            cleanupLocks();
+        }
+    }
+
+    private void cleanupLocks() {
+        if (calculationLocks.size() > 1000) {
+            calculationLocks.clear();
         }
     }
 

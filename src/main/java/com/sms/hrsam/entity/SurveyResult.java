@@ -7,8 +7,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "survey_result")
 @Data
+@Table(name = "survey_result",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        columnNames = {"user_id", "survey_id", "attempt_number"},
+                        name = "uk_survey_result_user_survey_attempt"
+                )
+        })
 public class SurveyResult {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
