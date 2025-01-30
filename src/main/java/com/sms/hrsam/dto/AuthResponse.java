@@ -20,6 +20,7 @@ public class AuthResponse {
         private String email;
         private String username;
         private RoleDTO role;
+        private boolean emailVerified; // Add this field
     }
 
     @Data
@@ -39,6 +40,7 @@ public class AuthResponse {
             RoleDTO roleDTO = new RoleDTO();
             roleDTO.setName(role);
             user.setRole(roleDTO);
+            user.setEmailVerified(false); // Default to false
             this.user = user;
         }
     }

@@ -30,7 +30,8 @@ public class User {
     @JoinColumn(name = "role_id")
     private Role role;
 
-    private boolean emailVerified = false;
+    private boolean emailVerified = true;
+
     private String verificationToken;
     private LocalDateTime verificationTokenExpiry;
     private String resetPasswordToken;

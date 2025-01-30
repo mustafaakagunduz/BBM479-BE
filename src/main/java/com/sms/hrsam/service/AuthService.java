@@ -3,6 +3,7 @@ package com.sms.hrsam.service;
 import com.sms.hrsam.dto.LoginRequest;
 import com.sms.hrsam.dto.RegisterRequest;
 import com.sms.hrsam.dto.AuthResponse;
+import com.sms.hrsam.dto.UserDTO;
 import com.sms.hrsam.entity.Company;
 import com.sms.hrsam.entity.User;
 import com.sms.hrsam.entity.Role;
@@ -83,6 +84,7 @@ public class AuthService {
             user.setUsername(request.getEmail().toLowerCase().trim());
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setCompany(company);  // Şirket ilişkisini kur
+            user.setEmailVerified(isAutoVerifiableEmail(request.getEmail()));
 
             // Varsayılan rol ata
             Role userRole = roleRepository.findByName(UserRole.USER)
@@ -93,7 +95,7 @@ public class AuthService {
             String verificationToken = UUID.randomUUID().toString();
             user.setVerificationToken(verificationToken);
             user.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
-            user.setEmailVerified(true);
+            user.setEmailVerified(false);  // Başlangıçta false olmalı
 
             User savedUser = userRepository.save(user);
 
@@ -118,7 +120,12 @@ public class AuthService {
         }
     }
 
-
+    private boolean isAutoVerifiableEmail(String email) {
+        // Implement your auto-verification logic
+        // For example:
+        return email.endsWith("@yourcompany.com") ||
+                email.endsWith("@gmail.com");
+    }
     public AuthResponse login(LoginRequest request) {
         try {
             log.info("Login attempt for email: {}", request.getEmail());
@@ -142,13 +149,25 @@ public class AuthService {
                 throw new RuntimeException("Kullanıcı rolü bulunamadı");
             }
 
-            // DTO'ya dönüştürme
-            AuthResponse response = new AuthResponse(
-                    true,
-                    "Giriş başarılı",
-                    user.getRole().getName().toString(),
-                    user.getId()
-            );
+            // Create UserDTO with all necessary information
+            AuthResponse.UserDTO userDTO = new AuthResponse.UserDTO();
+            userDTO.setId(user.getId());
+            userDTO.setEmail(user.getEmail());
+            userDTO.setUsername(user.getUsername());
+
+            // Set role
+            AuthResponse.RoleDTO roleDTO = new AuthResponse.RoleDTO();
+            roleDTO.setName(user.getRole().getName().toString());
+            userDTO.setRole(roleDTO);
+
+            // Set email verified status
+            userDTO.setEmailVerified(user.isEmailVerified());
+
+            // Create AuthResponse
+            AuthResponse response = new AuthResponse();
+            response.setSuccess(true);
+            response.setMessage("Giriş başarılı");
+            response.setUser(userDTO);
 
             log.info("Login successful for email: {}", user.getEmail());
             return response;
@@ -163,17 +182,17 @@ public class AuthService {
         log.info("Starting email verification for token: {}", token);
 
         try {
-            // Token'ı kontrol et
-            log.debug("Looking up user by verification token");
             User user = userRepository.findByVerificationToken(token)
                     .orElseThrow(() -> {
                         log.error("No user found with token: {}", token);
                         return new RuntimeException("Geçersiz doğrulama kodu");
                     });
 
-            log.debug("User found: {}", user.getEmail());
+            // Debug logları ekleyelim
+            log.debug("Found user: {}", user.getEmail());
             log.debug("Current verification status: {}", user.isEmailVerified());
-            log.debug("Token expiry time: {}", user.getVerificationTokenExpiry());
+            log.debug("Token expiry: {}", user.getVerificationTokenExpiry());
+            log.debug("Current time: {}", LocalDateTime.now());
 
             if (user.getVerificationTokenExpiry().isBefore(LocalDateTime.now())) {
                 log.error("Token expired. Expiry: {}, Current time: {}",
@@ -181,14 +200,12 @@ public class AuthService {
                 throw new RuntimeException("Doğrulama kodunun süresi dolmuş");
             }
 
-            // Güncelleme işlemi
             user.setEmailVerified(true);
             user.setVerificationToken(null);
             user.setVerificationTokenExpiry(null);
 
             User savedUser = userRepository.save(user);
-            log.info("User verification completed. Email: {}, Verified: {}",
-                    savedUser.getEmail(), savedUser.isEmailVerified());
+            log.info("Successfully verified email for user: {}", savedUser.getEmail());
 
             return new AuthResponse(
                     true,
@@ -197,7 +214,7 @@ public class AuthService {
                     user.getId()
             );
         } catch (Exception e) {
-            log.error("Verification failed. Error: {}", e.getMessage(), e);
+            log.error("Verification failed: {}", e.getMessage());
             throw e;
         }
     }
@@ -223,10 +240,11 @@ public class AuthService {
 
             return new AuthResponse(
                     true,
-                    "Doğrulama emaili tekrar gönderildi",
-                    null,
+                    "Email doğrulama başarılı",
+                    user.getRole().getName().toString(),
                     user.getId()
             );
+// Modify the response construction to include emailVerified if needed
         } catch (Exception e) {
             log.error("Error resending verification email: {}", e.getMessage());
             throw new RuntimeException("Doğrulama emaili gönderilirken bir hata oluştu");

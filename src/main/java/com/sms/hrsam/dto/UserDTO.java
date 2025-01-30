@@ -15,6 +15,7 @@ public class UserDTO {
     private String email;
     private String username;
     private String role;
-    private String profileImage;  // Add this field
+    private String profileImage;
     private CompanyDTO company;
+    private boolean emailVerified; // Add this field
 }
