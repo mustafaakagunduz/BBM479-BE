@@ -15,6 +15,8 @@ public class CompanyDTO {
     private Long id;
     private String name;
     private String description;
+    private int userCount;
+    private List<UserDTO> users;  // User'dan UserDTO'ya değişti
 
     // Partial constructor for specific use cases
     public CompanyDTO(Long id, String name) {
