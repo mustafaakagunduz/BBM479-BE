@@ -25,5 +25,7 @@ public class Company {
     @OneToMany(mappedBy = "company")
 
     private List<User> users;
+
     private String description;
+
 }

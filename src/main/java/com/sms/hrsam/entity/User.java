@@ -1,6 +1,7 @@
 package com.sms.hrsam.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.sms.hrsam.validator.ValidPassword;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -21,6 +22,7 @@ public class User {
     private String name;
     private String email;
     private String username;
+    @ValidPassword
     private String password;
 
     @Column(columnDefinition = "TEXT")
