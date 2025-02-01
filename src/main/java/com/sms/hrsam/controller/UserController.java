@@ -3,9 +3,11 @@ package com.sms.hrsam.controller;
 import com.sms.hrsam.dto.RoleUpdateRequest;
 import com.sms.hrsam.dto.UserDTO;
 import com.sms.hrsam.dto.UserUpdateDTO;
+import com.sms.hrsam.entity.Company;
 import com.sms.hrsam.entity.User;
 import com.sms.hrsam.exception.ResourceNotFoundException;
 import com.sms.hrsam.repository.UserRepository;
+import com.sms.hrsam.service.CompanyService;
 import com.sms.hrsam.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,10 +32,16 @@ public class UserController {
     private final UserRepository userRepository;
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
-    public UserController(UserService userService, PasswordEncoder passwordEncoder,UserRepository userRepository) {
+    private final CompanyService companyService;
+
+    public UserController(UserService userService,
+                          PasswordEncoder passwordEncoder,
+                          UserRepository userRepository,
+                          CompanyService companyService) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
+        this.companyService = companyService;
     }
 
     @PostMapping("/upload")
@@ -58,7 +66,7 @@ public class UserController {
     @PutMapping("/{userId}")
     public ResponseEntity<?> updateUser(@PathVariable Long userId, @RequestBody UserUpdateDTO updateDTO) {
         try {
-            User user = userService.getUserEntity(userId); // getUserEntity kullan
+            User user = userService.getUserEntity(userId);
 
             // Email ve username kontrolü
             if (!user.getEmail().equals(updateDTO.getEmail()) &&
@@ -75,8 +83,14 @@ public class UserController {
             user.setEmail(updateDTO.getEmail());
             user.setUsername(updateDTO.getUsername());
 
+            // Company güncellemesi
+            if (updateDTO.getCompanyId() != null) {
+                Company company = companyService.getCompanyById(updateDTO.getCompanyId());
+                user.setCompany(company);
+            }
+
             userService.updateUser(user);
-            return ResponseEntity.ok(userService.convertToDTO(user)); // DTO olarak dön
+            return ResponseEntity.ok(userService.convertToDTO(user));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {

@@ -22,9 +22,11 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleService roleService;
 
+
     public UserService(UserRepository userRepository, RoleService roleService) {
         this.userRepository = userRepository;
         this.roleService = roleService;
+
     }
     /**
      * Creates a new user and saves it to the database.

@@ -10,9 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserUpdateDTO {
-
-
         private String name;
         private String email;
         private String username;
+        private Long companyId;  // Sadece company ID'sini ekleyelim
 }
