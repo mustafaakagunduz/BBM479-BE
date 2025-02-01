@@ -75,4 +75,33 @@ public class CompanyController {
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("Company API is working!");
     }
+
+    @PostMapping
+    public ResponseEntity<CompanyDTO> createCompany(@RequestBody Company company) {
+        Company createdCompany = companyService.createCompany(company);
+        CompanyDTO companyDTO = CompanyDTO.builder()
+                .id(createdCompany.getId())
+                .name(createdCompany.getName())
+                .description(createdCompany.getDescription())
+                .build();
+        return ResponseEntity.ok(companyDTO);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CompanyDTO> updateCompany(@PathVariable Long id, @RequestBody Company company) {
+        company.setId(id);
+        Company updatedCompany = companyService.updateCompany(company);
+        CompanyDTO companyDTO = CompanyDTO.builder()
+                .id(updatedCompany.getId())
+                .name(updatedCompany.getName())
+                .description(updatedCompany.getDescription())
+                .build();
+        return ResponseEntity.ok(companyDTO);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCompany(@PathVariable Long id) {
+        companyService.deleteCompany(id);
+        return ResponseEntity.ok().build();
+    }
 }
