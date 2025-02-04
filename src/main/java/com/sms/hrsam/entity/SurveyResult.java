@@ -40,6 +40,9 @@ public class SurveyResult {
     @OneToMany(mappedBy = "surveyResult", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QuestionResult> questionResults = new ArrayList<>();
 
+    @OneToMany(mappedBy = "surveyResult", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Response> responses = new ArrayList<>();
+
     // Helper methods
     public void addProfessionMatch(ProfessionMatch match) {
         professionMatches.add(match);

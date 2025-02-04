@@ -41,6 +41,10 @@ public class Response {
     @Max(5)
     private Integer enteredLevel;
 
+    @ManyToOne
+    @JoinColumn(name = "survey_result_id")
+    private SurveyResult surveyResult;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now(); // Default value
 
@@ -51,6 +55,13 @@ public class Response {
     protected void onCreate() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
+        }
+    }
+
+    public void setSurveyResult(SurveyResult surveyResult) {
+        this.surveyResult = surveyResult;
+        if (surveyResult != null && !surveyResult.getResponses().contains(this)) {
+            surveyResult.getResponses().add(this);
         }
     }
 }
