@@ -176,6 +176,7 @@ public class SurveyResultService {
         dto.setId(result.getId());
         dto.setUserId(result.getUser().getId());
         dto.setSurveyId(result.getSurvey().getId());
+        dto.setSurveyTitle(result.getSurvey().getTitle());  // Survey title'ı eklendi
         dto.setCreatedAt(result.getCreatedAt());
         dto.setAttemptNumber(result.getAttemptNumber());
 
