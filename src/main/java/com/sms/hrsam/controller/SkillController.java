@@ -15,7 +15,7 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class SkillController {
 
-    private final SkillService skillService;
+    private final SkillService skillService; //constructora eklicem
 
     @GetMapping
     public ResponseEntity<List<SkillDTO>> getAllSkills() {
