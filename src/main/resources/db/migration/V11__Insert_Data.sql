@@ -7,25 +7,49 @@ INSERT INTO app_user ( name, email, username, password, role_id) VALUES ( 'Admin
 INSERT INTO app_user ( name, email, username, password, role_id) VALUES ( 'Regular User', 'user@example.com', 'user', 'password_hash', 2);
 
 -- Insert into Industry table
-INSERT INTO industry ( name) VALUES ( 'Software Industry');
-INSERT INTO industry ( name) VALUES ('Data Science Industry');
+INSERT INTO industry ( name) VALUES ( 'IT');
 
 -- Update Skill table with industry relationships
-INSERT INTO skill ( name, industry_id) VALUES ( 'Java', 1);
-INSERT INTO skill ( name, industry_id) VALUES ( 'Python',1);
-INSERT INTO skill ( name, industry_id) VALUES ( 'SQL', 1);
-INSERT INTO skill ( name, industry_id) VALUES ( 'C++', 2);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Analytical Thinking', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Business Plan Development',1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Change Management', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Configuration Management', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Critical Thinking', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Data Management', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Digital Transformation Strategy Planning', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Document Management', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Enterprise and Business Architecture', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Financial Management', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Information Security Management', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'IT Service Management', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Knowledge Management', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Leadership and Social Influence', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Machine Learning', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Marketing', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Networks and Cybersecurity', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Problem Management', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Project Management', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Requirements Definition and Management', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Resource Management and Operations', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Software Design', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Software Development', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Software Maintenance', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Systems Analysis and Design', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Talent Management', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Software Verification and Validation', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'User Experience', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'User Support', 1);
+
 
 -- Update Profession table with industry relationships
 INSERT INTO profession ( name, industry_id) VALUES ('Software Developer', 1);
-INSERT INTO profession ( name, industry_id) VALUES ('X Developer', 2);
 INSERT INTO profession ( name, industry_id) VALUES ('Y Developer', 1);
 
 -- RequiredLevel tablosuna veriler ekleyin
 INSERT INTO required_level ( profession_id, skill_id, required_level) VALUES ( 1, 1, 4); -- Software Developer için Java seviyesi 4
 INSERT INTO required_level ( profession_id, skill_id, required_level) VALUES ( 1, 2, 3); -- Software Developer için Python seviyesi 3
 INSERT INTO required_level (profession_id, skill_id, required_level) VALUES ( 2, 3, 4); -- Data Analyst için SQL seviyesi 4
-INSERT INTO required_level ( profession_id, skill_id, required_level) VALUES ( 3, 3, 4); -- Data Analyst için SQL seviyesi 4
+INSERT INTO required_level ( profession_id, skill_id, required_level) VALUES ( 2, 3, 4); -- Data Analyst için SQL seviyesi 4
 
 -- Survey tablosuna veri ekleyin
 INSERT INTO survey ( title, admin_id) VALUES ( 'Developer Skills Survey', 1);
