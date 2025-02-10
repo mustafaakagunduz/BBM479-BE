@@ -10,6 +10,7 @@ public class SurveyResultDTO {
     private Long id;
     private Long userId;
     private Long surveyId;
+    private String surveyTitle;  // Yeni eklenen alan
     private Integer attemptNumber;
     private List<ProfessionMatchDTO> professionMatches;
     private LocalDateTime createdAt;
