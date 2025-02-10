@@ -3,7 +3,10 @@ package com.sms.hrsam.controller;
 import com.sms.hrsam.dto.LoginRequest;
 import com.sms.hrsam.dto.RegisterRequest;
 import com.sms.hrsam.dto.AuthResponse;
+import com.sms.hrsam.entity.User;
+import com.sms.hrsam.repository.UserRepository;
 import com.sms.hrsam.service.AuthService;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +20,7 @@ public class AuthController {
 
     private final AuthService authService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService ) {
         this.authService = authService;
     }
 
@@ -46,20 +49,20 @@ public class AuthController {
             throw e;
         }
     }
+    @Transactional
+    public AuthResponse verifyEmail(String token, UserRepository userRepository) {
+        log.info("Starting verification for token: {}", token);
+        User user = userRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new RuntimeException("Invalid token"));
+        log.info("Found user: {}, verified: {}", user.getEmail(), user.isEmailVerified());
 
-    @GetMapping("/verify/{token}")
-    public ResponseEntity<AuthResponse> verifyEmail(@PathVariable String token) {
-        log.info("Email verification request received for token: {}", token);
-        try {
-            AuthResponse response = authService.verifyEmail(token);
-            log.info("Email verification successful for token: {}", token);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Email verification failed for token {}: {}", token, e.getMessage());
-            throw e;
-        }
+        user.setEmailVerified(true);
+        user.setVerificationToken(null);
+        userRepository.save(user);
+        log.info("User verified: {}", user.getEmail());
+
+        return new AuthResponse(true, "Email verified", user.getRole().getName().toString(), user.getId());
     }
-
     @PostMapping("/verify-manual/{userId}")
     public ResponseEntity<AuthResponse> manualVerify(@PathVariable Long userId) {
         log.info("Manual verification request received for userId: {}", userId);
