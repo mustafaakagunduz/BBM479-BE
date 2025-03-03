@@ -31,7 +31,7 @@ INSERT INTO skill ( name, industry_id) VALUES ( 'Networks and Cybersecurity', 1)
 INSERT INTO skill ( name, industry_id) VALUES ( 'Problem Management', 1);
 INSERT INTO skill ( name, industry_id) VALUES ( 'Project Management', 1);
 INSERT INTO skill ( name, industry_id) VALUES ( 'Requirements Definition and Management', 1);
-INSERT INTO skill ( name, industry_id) VALUES ( 'Resource Management and Operations', 1);
+INSERT INTO skill ( name, industry_id) VALUES ( 'Resource Management', 1);
 INSERT INTO skill ( name, industry_id) VALUES ( 'Software Design', 1);
 INSERT INTO skill ( name, industry_id) VALUES ( 'Software Development', 1);
 INSERT INTO skill ( name, industry_id) VALUES ( 'Software Maintenance', 1);
@@ -84,7 +84,7 @@ INSERT INTO required_level (profession_id, skill_id, required_level) VALUES
 ((SELECT id FROM profession WHERE name = 'AI and Big Data Engineers'), (SELECT id FROM skill WHERE name = 'Machine Learning'), 4),
 ((SELECT id FROM profession WHERE name = 'AI and Big Data Engineers'), (SELECT id FROM skill WHERE name = 'Problem Management'), 4),
 ((SELECT id FROM profession WHERE name = 'AI and Big Data Engineers'), (SELECT id FROM skill WHERE name = 'Project Management'), 3),
-((SELECT id FROM profession WHERE name = 'AI and Big Data Engineers'), (SELECT id FROM skill WHERE name = 'Resource Management and Operations'), 3),
+((SELECT id FROM profession WHERE name = 'AI and Big Data Engineers'), (SELECT id FROM skill WHERE name = 'Resource Management'), 3),
 ((SELECT id FROM profession WHERE name = 'AI and Big Data Engineers'), (SELECT id FROM skill WHERE name = 'Software Design'), 3),
 ((SELECT id FROM profession WHERE name = 'AI and Big Data Engineers'), (SELECT id FROM skill WHERE name = 'Software Development'), 4),
 ((SELECT id FROM profession WHERE name = 'AI and Big Data Engineers'), (SELECT id FROM skill WHERE name = 'Software Maintenance'), 4),
@@ -173,7 +173,7 @@ INSERT INTO required_level (profession_id, skill_id, required_level) VALUES
 ((SELECT id FROM profession WHERE name = 'Digital Transformation Specialists'), (SELECT id FROM skill WHERE name = 'Financial Management'), 2),
 ((SELECT id FROM profession WHERE name = 'Digital Transformation Specialists'), (SELECT id FROM skill WHERE name = 'Problem Management'), 4),
 ((SELECT id FROM profession WHERE name = 'Digital Transformation Specialists'), (SELECT id FROM skill WHERE name = 'Project Management'), 4),
-((SELECT id FROM profession WHERE name = 'Digital Transformation Specialists'), (SELECT id FROM skill WHERE name = 'Resource Management and Operations'), 3),
+((SELECT id FROM profession WHERE name = 'Digital Transformation Specialists'), (SELECT id FROM skill WHERE name = 'Resource Management'), 3),
 ((SELECT id FROM profession WHERE name = 'Digital Transformation Specialists'), (SELECT id FROM skill WHERE name = 'Systems Analysis and Design'), 4);
 
 --FinTech Engineers
@@ -327,7 +327,7 @@ INSERT INTO required_level (profession_id, skill_id, required_level) VALUES
 ((SELECT id FROM profession WHERE name = 'Head of IT Departments'), (SELECT id FROM skill WHERE name = 'Leadership and Social Influence'), 5),
 ((SELECT id FROM profession WHERE name = 'Head of IT Departments'), (SELECT id FROM skill WHERE name = 'Project Management'), 4),
 ((SELECT id FROM profession WHERE name = 'Head of IT Departments'), (SELECT id FROM skill WHERE name = 'Requirements Definition and Management'), 5),
-((SELECT id FROM profession WHERE name = 'Head of IT Departments'), (SELECT id FROM skill WHERE name = 'Resource Management and Operations'), 5),
+((SELECT id FROM profession WHERE name = 'Head of IT Departments'), (SELECT id FROM skill WHERE name = 'Resource Management'), 5),
 ((SELECT id FROM profession WHERE name = 'Head of IT Departments'), (SELECT id FROM skill WHERE name = 'Systems Analysis and Design'), 4),
 ((SELECT id FROM profession WHERE name = 'Head of IT Departments'), (SELECT id FROM skill WHERE name = 'Talent Management'), 5);
 
@@ -362,7 +362,7 @@ INSERT INTO required_level (profession_id, skill_id, required_level) VALUES
 ((SELECT id FROM profession WHERE name = 'Network Administrators'), (SELECT id FROM skill WHERE name = 'Networks and Cybersecurity'), 5),
 ((SELECT id FROM profession WHERE name = 'Network Administrators'), (SELECT id FROM skill WHERE name = 'Problem Management'), 3),
 ((SELECT id FROM profession WHERE name = 'Network Administrators'), (SELECT id FROM skill WHERE name = 'Requirements Definition and Management'), 4),
-((SELECT id FROM profession WHERE name = 'Network Administrators'), (SELECT id FROM skill WHERE name = 'Resource Management and Operations'), 4),
+((SELECT id FROM profession WHERE name = 'Network Administrators'), (SELECT id FROM skill WHERE name = 'Resource Management'), 4),
 ((SELECT id FROM profession WHERE name = 'Network Administrators'), (SELECT id FROM skill WHERE name = 'Talent Management'), 4);
 
 -- Network Specialists
@@ -392,7 +392,7 @@ INSERT INTO required_level (profession_id, skill_id, required_level) VALUES
 ((SELECT id FROM profession WHERE name = 'Project Managers'), (SELECT id FROM skill WHERE name = 'Problem Management'), 4),
 ((SELECT id FROM profession WHERE name = 'Project Managers'), (SELECT id FROM skill WHERE name = 'Project Management'), 5),
 ((SELECT id FROM profession WHERE name = 'Project Managers'), (SELECT id FROM skill WHERE name = 'Requirements Definition and Management'), 3),
-((SELECT id FROM profession WHERE name = 'Project Managers'), (SELECT id FROM skill WHERE name = 'Resource Management and Operations'), 4),
+((SELECT id FROM profession WHERE name = 'Project Managers'), (SELECT id FROM skill WHERE name = 'Resource Management'), 4),
 ((SELECT id FROM profession WHERE name = 'Project Managers'), (SELECT id FROM skill WHERE name = 'Talent Management'), 4);
 
 -- Software Development Specialists
