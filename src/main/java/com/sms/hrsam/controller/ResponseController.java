@@ -14,7 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/responses")
-@CrossOrigin(origins = "*")
 @Slf4j
 public class ResponseController {
 

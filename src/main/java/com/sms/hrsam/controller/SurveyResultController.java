@@ -24,7 +24,6 @@ import java.util.concurrent.locks.ReentrantLock;
 @RestController
 @RequestMapping("/api/surveys")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Slf4j
 public class SurveyResultController {
 

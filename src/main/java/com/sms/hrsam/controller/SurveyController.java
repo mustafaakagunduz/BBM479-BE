@@ -12,7 +12,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/surveys")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class SurveyController {
     private final SurveyService surveyService;
 

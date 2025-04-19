@@ -14,7 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = {"https://hrsam.vercel.app", "http://localhost:3000"})
 @Slf4j
 public class AuthController {
 

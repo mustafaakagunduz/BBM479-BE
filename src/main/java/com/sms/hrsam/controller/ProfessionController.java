@@ -14,7 +14,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/professions")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class ProfessionController {
     private final ProfessionService professionService;
 

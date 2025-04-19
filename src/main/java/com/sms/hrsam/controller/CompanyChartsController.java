@@ -13,7 +13,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/company-charts")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class CompanyChartsController {
     private static final Logger log = LoggerFactory.getLogger(CompanyChartsController.class);
 

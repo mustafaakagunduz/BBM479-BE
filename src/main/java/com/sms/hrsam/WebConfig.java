@@ -9,9 +9,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -20,11 +21,17 @@ public class WebConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("https://hrsam.vercel.app"); // Vercel URL'inizi ekleyin
-        config.addAllowedOrigin("http://localhost:3000"); // Geliştirme ortamı için kalsın
-        config.addAllowedMethod("*");
-        config.addAllowedHeader("*");
-        config.setAllowCredentials(true);
+
+        // CORS için izin verilen domainler
+        config.setAllowedOrigins(Arrays.asList(
+                "https://hrsam.vercel.app",        // Vercel frontend
+                "https://www.hrsam.org",           // Kendi domainin
+                "http://localhost:3000"            // Geliştirme ortamı
+        ));
+
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(Arrays.asList("*"));
+        config.setAllowCredentials(true); // Eğer frontend tarafında cookie/token kullanıyorsan bu önemli
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
@@ -40,7 +47,7 @@ public class WebConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/companies/**").permitAll()
-                        .requestMatchers("/api/users/upload").permitAll()  // Upload endpoint'i eklendi
+                        .requestMatchers("/api/users/upload").permitAll()
                         .anyRequest().permitAll()
                 )
                 .formLogin(form -> form.disable())

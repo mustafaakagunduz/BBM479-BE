@@ -12,7 +12,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/skills")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class SkillController {
 
     private final SkillService skillService; //constructora eklicem
