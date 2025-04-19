@@ -21,7 +21,7 @@ public class Company {
 
     @Column(unique = true)
     private String name;
-    @JsonIgnoreProperties("users") // Bu satırı ekleyin
+    @JsonIgnoreProperties("users") // Bu satırı ekleyinn
     @OneToMany(mappedBy = "company")
 
     private List<User> users;
