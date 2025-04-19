@@ -26,7 +26,7 @@ public class User {
     private String password;
 
     @Column(columnDefinition = "TEXT")
-    private String profileImage;  // Changed from byte[] to String
+    private String profileImage;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
@@ -38,7 +38,7 @@ public class User {
     private LocalDateTime verificationTokenExpiry;
     private String resetPasswordToken;
     private LocalDateTime resetPasswordTokenExpiry;
-    @JsonIgnoreProperties("users") // Bu satırı ekleyin
+    @JsonIgnoreProperties("users")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")
     private Company company;

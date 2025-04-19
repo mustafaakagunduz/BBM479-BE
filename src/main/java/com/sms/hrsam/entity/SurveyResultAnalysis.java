@@ -35,8 +35,8 @@ public class SurveyResultAnalysis {
             name = "survey_result_analysis_recommendations",
             joinColumns = @JoinColumn(name = "analysis_id")
     )
-    @Column(name = "recommendation")
-    private List<String> recommendations = new ArrayList<>();  // Boş liste ile başlat
+    @Column(name = "recommendation", columnDefinition = "TEXT")  // TEXT olarak tanımlanmalı
+    private List<String> recommendations = new ArrayList<>();
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
