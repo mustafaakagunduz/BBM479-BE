@@ -16,7 +16,7 @@ public class EmailService {
     @Autowired
     public EmailService(
             JavaMailSender mailSender,
-            @Value("${app.frontend-url:http://localhost:3000}") String frontendUrl) {
+            @Value("${app.frontend.url:https://hrsam.vercel.app}") String frontendUrl) {
         this.mailSender = mailSender;
         this.frontendUrl = frontendUrl;
     }

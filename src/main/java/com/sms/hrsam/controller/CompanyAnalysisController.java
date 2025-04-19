@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/analysis")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = {"https://hrsam.vercel.app", "http://localhost:3000"})
 public class CompanyAnalysisController {
     private final CompanyAnalysisService companyAnalysisService;
 
