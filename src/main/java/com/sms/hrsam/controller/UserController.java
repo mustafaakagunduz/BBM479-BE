@@ -151,7 +151,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}/role")
-    public ResponseEntity<User> updateUserRole(
+    public ResponseEntity<?> updateUserRole(
             @PathVariable Long userId,
             @RequestBody RoleUpdateRequest roleRequest) {
         try {
@@ -160,7 +160,7 @@ public class UserController {
             return ResponseEntity.ok(updatedUser);
         } catch (Exception e) {
             System.err.println("Error updating role: " + e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body("Error updating role: " + e.getMessage());
         }
     }
 }

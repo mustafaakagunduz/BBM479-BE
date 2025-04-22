@@ -100,19 +100,40 @@ public class UserService {
 
     @Transactional
     public User updateUserRole(Long userId, String roleName) {
-        User user = getUserEntity(userId);
+        try {
+            User user = getUserEntity(userId);
 
-        if (user.getId() == 1) {
-            throw new IllegalArgumentException("Cannot change role of system administrator");
+            if (user.getId() == 1) {
+                throw new IllegalArgumentException("Cannot change role of system administrator");
+            }
+
+            // Rol adını logla
+            System.out.println("Updating role for user " + userId + " to " + roleName);
+
+            // String'i UserRole enum'una çeviriyoruz
+            UserRole newRole = UserRole.valueOf(roleName);
+
+            // Yeni Role objesi oluştur veya mevcut olanı bul
+            Role role = roleService.getRoleByName(newRole);
+
+            // Eski rolü logla
+            System.out.println("Old role: " + (user.getRole() != null ? user.getRole().getName() : "null"));
+
+            user.setRole(role);
+
+            // Yeni rol değerini logla
+            System.out.println("New role set: " + user.getRole().getName());
+
+            User savedUser = userRepository.save(user);
+
+            // Kaydedilen kullanıcıyı logla
+            System.out.println("User saved successfully with role: " + savedUser.getRole().getName());
+
+            return savedUser;
+        } catch (Exception e) {
+            System.err.println("Error in updateUserRole: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
-
-        // String'i UserRole enum'una çeviriyoruz
-        UserRole newRole = UserRole.valueOf(roleName);
-
-        // Yeni Role objesi oluştur veya mevcut olanı bul
-        Role role = roleService.getRoleByName(newRole);
-        user.setRole(role);
-
-        return userRepository.save(user);
     }
 }
