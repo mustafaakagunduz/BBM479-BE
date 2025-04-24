@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.time.LocalDateTime;
@@ -39,42 +41,51 @@ public class SurveyResultService {
     }
 
     @Transactional
-    public SurveyResultDTO calculateAndSaveSurveyResult(Long surveyId, Long userId) {
+    public SurveyResultDTO calculateAndSaveSurveyResult(Long surveyId, Long userId, Boolean force) {
         String lockKey = String.format("calc_%d_%d", surveyId, userId);
         Lock calculationLock = calculationLocks.computeIfAbsent(lockKey, k -> new ReentrantLock());
 
-        if (!calculationLock.tryLock()) {
-            log.warn("Calculation already in progress for surveyId: {} and userId: {}", surveyId, userId);
-            throw new RuntimeException("Another calculation is in progress");
-        }
-
+        boolean lockAcquired = false;
         try {
+            // Try to acquire lock with a 30-second timeout (increased from 10)
+            lockAcquired = calculationLock.tryLock(30, TimeUnit.SECONDS);
+
+            if (!lockAcquired) {
+                log.warn("Calculation still in progress after timeout for surveyId: {} and userId: {}", surveyId, userId);
+                throw new RuntimeException("Calculation is taking longer than expected. Please try again in a moment.");
+            }
+
             log.info("Starting calculation for surveyId: {} and userId: {}", surveyId, userId);
 
-            // Kullanıcının bu anketi daha önce tamamlayıp tamamlamadığını kontrol et
+            // Check if the user has already completed this survey
             Optional<SurveyResult> existingResult = surveyResultRepository
                     .findFirstBySurveyIdAndUserIdOrderByAttemptNumberDesc(surveyId, userId);
 
-            if (existingResult.isPresent()) {
-                log.warn("User has already completed this survey. surveyId: {}, userId: {}", surveyId, userId);
-                throw new RuntimeException("You have already completed this survey and cannot submit it again.");
+            // Always recalculate if force is true
+            if (Boolean.TRUE.equals(force)) {
+                log.info("Force parameter is true. Creating a new calculation for surveyId: {} and userId: {}", surveyId, userId);
+            }
+            // Otherwise, return existing result if present
+            else if (existingResult.isPresent()) {
+                log.info("Returning existing result for surveyId: {} and userId: {}", surveyId, userId);
+                return mapToDTO(existingResult.get());
             }
 
-            // Anketin cevaplarını kontrol et
+            // Check if the user has submitted responses for this survey
             List<Response> userResponses = responseRepository.findBySurveyIdAndUserId(surveyId, userId);
             if (userResponses.isEmpty()) {
                 log.warn("No responses found for surveyId: {} and userId: {}", surveyId, userId);
                 throw new RuntimeException("No responses found for this survey. Please answer all questions first.");
             }
 
-            // Survey ve User varlığını kontrol et
+            // Fetch survey and user entities
             Survey survey = surveyRepository.findById(surveyId)
                     .orElseThrow(() -> new RuntimeException("Survey not found"));
 
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Skill levels'ları hazırla
+            // Prepare user skill levels from responses
             Map<Long, Integer> userSkillLevels = userResponses.stream()
                     .collect(Collectors.toMap(
                             response -> response.getQuestion().getSkill().getId(),
@@ -82,15 +93,20 @@ public class SurveyResultService {
                             (existing, replacement) -> replacement
                     ));
 
-            // SurveyResult nesnesini oluştur
+            // Create new SurveyResult
             SurveyResult surveyResult = new SurveyResult();
             surveyResult.setUser(user);
             surveyResult.setSurvey(survey);
             surveyResult.setCreatedAt(LocalDateTime.now());
-            surveyResult.setAttemptNumber(1);
+
+            // Set attempt number based on existing result or as new attempt
+            int attemptNumber = existingResult.isPresent()
+                    ? existingResult.get().getAttemptNumber() + 1
+                    : 1;
+            surveyResult.setAttemptNumber(attemptNumber);
             surveyResult.setProfessionMatches(new ArrayList<>());
 
-            // Profession matches'leri hesapla
+            // Calculate profession matches
             survey.getProfessions().forEach(profession -> {
                 List<RequiredLevel> requiredLevels = requiredLevelRepository
                         .findByProfessionId(profession.getId());
@@ -107,21 +123,24 @@ public class SurveyResultService {
             });
 
             try {
-                // Son bir kez daha kontrol et ve kaydet
-                if (surveyResultRepository.findFirstBySurveyIdAndUserIdOrderByAttemptNumberDesc(surveyId, userId).isPresent()) {
-                    throw new RuntimeException("Survey has already been completed while processing");
-                }
-
+                // Save the result
                 SurveyResult savedResult = surveyResultRepository.save(surveyResult);
-                log.info("Successfully saved new survey result with id: {}", savedResult.getId());
+                log.info("Successfully saved new survey result with id: {} for attempt: {}",
+                        savedResult.getId(), attemptNumber);
                 return mapToDTO(savedResult);
             } catch (Exception e) {
                 log.error("Error saving survey result: ", e);
                 throw new RuntimeException("Failed to save survey result: " + e.getMessage());
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Thread interrupted while waiting for calculation lock: {}", e.getMessage());
+            throw new RuntimeException("Calculation was interrupted, please try again.");
         } finally {
-            calculationLock.unlock();
-            cleanupLocks();
+            if (lockAcquired) {
+                calculationLock.unlock();
+                cleanupLocks();
+            }
         }
     }
 

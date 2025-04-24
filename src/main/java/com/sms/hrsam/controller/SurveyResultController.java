@@ -85,17 +85,6 @@ public class SurveyResultController {
             @RequestParam(required = false) Boolean force,
             HttpServletRequest request) {
 
-        String lockKey = String.format("calc_%d_%d", surveyId, userId);
-        Lock calculationLock = calculationLocks.computeIfAbsent(lockKey, k -> new ReentrantLock());
-
-        // Kilit alma denemesi - 5 saniye bekler
-        if (!calculationLock.tryLock()) {
-            log.warn("Calculation already in progress for surveyId: {} and userId: {}", surveyId, userId);
-            return ResponseEntity
-                    .status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(null);
-        }
-
         try {
             // Önce anketin tamamlanıp tamamlanmadığını kontrol et
             boolean isCompleted = responseService.isSurveyCompletedByUser(surveyId, userId);
@@ -105,35 +94,25 @@ public class SurveyResultController {
                         .body(null);
             }
 
-            // Eğer force parametresi true ise veya son 5 dakika içinde hesaplanmış sonuç yoksa yeni hesaplama yap
-            if (Boolean.TRUE.equals(force)) {
-                log.info("Force calculation requested for surveyId: {} and userId: {}", surveyId, userId);
-                return ResponseEntity.ok(surveyResultService.calculateAndSaveSurveyResult(surveyId, userId));
-            }
-
-            // Son sonucu kontrol et
-            Optional<SurveyResultDTO> existingResult = surveyResultService.findLatestSurveyResult(surveyId, userId);
-            if (existingResult.isPresent()) {
-                LocalDateTime fiveMinutesAgo = LocalDateTime.now().minusMinutes(5);
-                if (existingResult.get().getCreatedAt().isAfter(fiveMinutesAgo)) {
-                    log.info("Returning existing result for surveyId: {} and userId: {}", surveyId, userId);
-                    return ResponseEntity.ok(existingResult.get());
-                }
-            }
-
-            log.info("Calculating new result for surveyId: {} and userId: {}", surveyId, userId);
-            SurveyResultDTO result = surveyResultService.calculateAndSaveSurveyResult(surveyId, userId);
+            // Calculate the result with the force parameter
+            SurveyResultDTO result = surveyResultService.calculateAndSaveSurveyResult(surveyId, userId, force);
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
             log.error("Error calculating result:", e);
+
+            // Only return rate limit response for specific rate limit errors
+            if (e.getMessage().contains("in progress") || e.getMessage().contains("taking longer")) {
+                return ResponseEntity
+                        .status(HttpStatus.TOO_MANY_REQUESTS)
+                        .header("Retry-After", "5")
+                        .body(null);
+            }
+
+            // For other errors, return a more general error
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(null);
-        } finally {
-            calculationLock.unlock();
-            // Eğer lock çok uzun süre kullanılmamışsa temizle
-            cleanupLocks(lockKey);
         }
     }
 
