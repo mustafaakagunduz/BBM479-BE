@@ -83,9 +83,10 @@ public class AuthService {
             log.info("User registered with role {}: {}", roleType, user.getEmail());
             log.info("Verification code sent to: {}", user.getEmail());
 
+            // Return a more neutral message without English text
             return new AuthResponse(
                     true,
-                    "Registration successful. Please verify your email with the code sent to your email address.",
+                    "", // Empty message - UI will handle the appropriate message based on language
                     user.getRole().getName().toString(),
                     savedUser.getId()
             );

@@ -65,6 +65,11 @@ public class EmailService {
      * @param to recipient email address
      * @param code verification code
      */
+    /**
+     * Send verification code email
+     * @param to recipient email address
+     * @param code verification code
+     */
     public void sendVerificationCode(String to, String code) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -74,24 +79,34 @@ public class EmailService {
 
             helper.setFrom(new InternetAddress(fromEmail, fromName));
             helper.setTo(to);
-            helper.setSubject("Email Doğrulama Kodu");
+            helper.setSubject("Email Verification Code");
 
+            // English email with HTML formatting to highlight the 6-digit code
             String content = String.format(
-                    "Merhaba,\n\n" +
-                            "Email adresinizi doğrulamak için aşağıdaki kodu kullanınız:\n\n" +
-                            "%s\n\n" +
-                            "Bu kod 15 dakika geçerlidir.\n\n" +
-                            "İyi günler,\nSkillFit Ekibi",
+                    "<html>" +
+                            "<body style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>" +
+                            "<div style='max-width: 600px; margin: 0 auto; background-color: #f9f9f9; padding: 30px; border-radius: 10px; border: 1px solid #eee;'>" +
+                            "<h2 style='color: #6200ea; margin-top: 0;'>Email Verification</h2>" +
+                            "<p style='margin-bottom: 25px;'>Hello,</p>" +
+                            "<p>Please use the following verification code to complete your email verification:</p>" +
+                            "<div style='background-color: #6200ea; color: white; font-size: 24px; font-weight: bold; letter-spacing: 5px; text-align: center; padding: 15px; margin: 25px 0; border-radius: 5px;'>" +
+                            "%s" +
+                            "</div>" +
+                            "<p style='font-size: 13px; color: #777;'>This code is valid for 15 minutes and can only be used once.</p>" +
+                            "<p style='margin-top: 30px;'>Best regards,<br>SkillFit Team</p>" +
+                            "</div>" +
+                            "</body>" +
+                            "</html>",
                     code
             );
 
-            helper.setText(content, false);
+            helper.setText(content, true); // Set the second parameter to true for HTML content
 
             mailSender.send(message);
             log.info("Verification code email sent successfully to: {}", to);
         } catch (Exception e) {
             log.error("Failed to send verification code email to {}: {}", to, e.getMessage());
-            throw new RuntimeException("Doğrulama kodu gönderilemedi");
+            throw new RuntimeException("Verification code couldn't be sent");
         }
     }
 

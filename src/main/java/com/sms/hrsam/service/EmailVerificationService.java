@@ -70,20 +70,16 @@ public class EmailVerificationService {
      * @param email recipient email
      * @param code verification code
      */
+    /**
+     * Send verification code email
+     * @param email recipient email
+     * @param code verification code
+     */
     private void sendVerificationEmail(String email, String code) {
         try {
-            String subject = "Email Doğrulama Kodu";
-            String content = String.format(
-                    "Merhaba,\n\n" +
-                            "Email adresinizi doğrulamak için aşağıdaki kodu kullanınız:\n\n" +
-                            "%s\n\n" +
-                            "Bu kod 15 dakika geçerlidir.\n\n" +
-                            "İyi günler,\nHR-SAM Ekibi",
-                    code
-            );
-
-            // EmailService üzerinden e-posta gönder
-            emailService.sendSimpleEmail(email, subject, content);
+            // Use the EmailService's sendVerificationCode method instead
+            // which now sends an HTML formatted email in English
+            emailService.sendVerificationCode(email, code);
             log.info("Verification email sent to {} with code {}", email, code);
         } catch (Exception e) {
             log.error("Failed to send verification email: {}", e.getMessage());
