@@ -26,7 +26,9 @@ public class WebConfig {
         config.setAllowedOrigins(Arrays.asList(
                 "https://hrsam.vercel.app",        // Vercel frontend
                 "https://www.hrsam.org",           // Kendi domainin
-                "http://localhost:3000"            // Geliştirme ortamı
+                "http://localhost:3000",            // Geliştirme ortamı
+                "http://skillfit.com.tr",         // SkillFit domaini
+                "https://Skillfit-env.eba-tk2vkk94.eu-north-1.elasticbeanstalk.com"          // SkillFit domaini
         ));
 
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));

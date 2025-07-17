@@ -484,6 +484,7 @@ VALUES (2, 1, 4, 4, 2); -- JavaScript Intermediate selected
 
 INSERT INTO company (name, description) VALUES
                                             ('None', 'I am not currently working'),
+                                            ('Hacettepe Üniversitesi', 'School'),
                                             ('Apple Inc.', 'Technology company that designs, develops, and sells consumer electronics'),
                                             ('Microsoft Corporation', 'Technology company specializing in software, cloud computing, and artificial intelligence'),
                                             ('Amazon.com Inc.', 'E-commerce and technology company focusing on e-commerce, cloud computing, and artificial intelligence'),
